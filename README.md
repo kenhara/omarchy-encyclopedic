@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `harris.fair-witness`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.3
+**Version:** 0.1.4
+
+### 0.1.4
+- Discoverability: expanded `keywords` + restored `barWidget.aliases` for search docs; honest note (loader may not index aliases).
 
 ### 0.1.3
 - Pre-ship checklist (`PRE-SHIP.md`): README hero `preview.png`, `"monospace"` font fallback, drop unused `panelOpen`, version sync.
@@ -46,8 +49,17 @@ Local folder: **`omarchy-fair-witness`**.
 sponsored by xAI, Grokipedia, or any related entity. “Fair Witness” is a
 literary reference to Robert A. Heinlein’s *Stranger in a Strange Land*. This
 plugin is a thin personal client that calls a **public read** HTTP search API.
-Keywords may mention Grokipedia for marketplace search; the display name does
-not.
+See **Discoverability** below — keywords may help marketplace/search; the
+display name stays brand-free.
+
+## Discoverability
+
+Marketplace filing: **Productivity** · tags `bar, quickshell`.
+
+Top-level `keywords` in `manifest.json` may help marketplace/search
+(Grokipedia, Grok, Wikipedia, Heinlein, xAI, encyclopedia, etc.).
+`barWidget.aliases` are for discovery docs and human search — the bar loader
+may not index them. Display name stays **Fair Witness** (no Grok in the title).
 
 ## Install
 
@@ -189,7 +201,7 @@ README.md
 
 ## Preview
 
-Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.3)
+Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.4)
 with sample Mars as MATCH hero + RELATED. Marketplace card: `preview.png`.
 
 ## License

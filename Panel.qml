@@ -4,7 +4,7 @@ import qs.Commons
 import qs.Ui
 
 // Nested details panel for Fair Witness (loaded by BarWidget — not a separate kind).
-// 0.1.3 — pre-ship; LOOK UP + MATCH hero + RELATED. No vendor chrome.
+// 0.1.4 — discoverability keywords/aliases; LOOK UP + MATCH hero + RELATED. No vendor chrome.
 Panel {
   id: root
   moduleName: "harris.fair-witness"

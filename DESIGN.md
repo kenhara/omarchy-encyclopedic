@@ -1,6 +1,6 @@
 # Fair Witness — design notes
 
-**Status:** 0.1.3 (pre-ship — PlainText, clipboard, URL allow-list, README hero)  
+**Status:** 0.1.4 (discoverability — keywords + aliases)  
 **Id:** `harris.fair-witness`
 
 ## Why

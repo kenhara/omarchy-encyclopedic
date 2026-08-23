@@ -2,7 +2,7 @@
 """Fair Witness — public Grokipedia full-text search (no auth).
 
 CLI for Omarchy bar-widget.
-User-Agent version is read from manifest.json (fallback 0.1.3).
+User-Agent version is read from manifest.json (fallback 0.1.4).
 
 Unofficial. Not affiliated with xAI / Grokipedia.
 """
@@ -33,7 +33,7 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.1.3"
+    return "0.1.4"
 
 
 VERSION = read_manifest_version()
