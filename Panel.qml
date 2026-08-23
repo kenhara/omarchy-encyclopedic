@@ -4,7 +4,7 @@ import qs.Commons
 import qs.Ui
 
 // Nested details panel for Fair Witness (loaded by BarWidget — not a separate kind).
-// 0.1.0 — one search field, LOOK UP, result cards. No vendor chrome.
+// 0.1.1 — direct-match hero + related; LOOK UP + cards. No vendor chrome.
 Panel {
   id: root
   moduleName: "harris.fair-witness"
@@ -193,11 +193,306 @@ Panel {
           font.pixelSize: Style.font.size(11)
         }
 
-        // Results list
+        // Hero + related (when direct title/slug match) OR flat results
         Column {
           width: parent.width
           spacing: Style.space(10)
-          visible: liveStore && liveStore.hasResults
+          visible: liveStore && liveStore.hasPrimary
+
+          // Expandable MATCH hero
+          Rectangle {
+            width: parent.width
+            height: heroInner.implicitHeight + Style.space(22)
+            radius: 12
+            color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.08)
+            border.width: 1
+            border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.4)
+
+            Column {
+              id: heroInner
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.margins: Style.space(14)
+              spacing: Style.space(8)
+
+              Row {
+                width: parent.width
+                spacing: Style.space(8)
+
+                Text {
+                  text: "MATCH"
+                  color: root.fwAccent
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.size(10)
+                  font.bold: true
+                  font.letterSpacing: 1.8
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Item {
+                  width: parent.width - Style.space(100)
+                  height: 1
+                }
+              }
+
+              Text {
+                width: parent.width
+                text: liveStore && liveStore.primary
+                  ? (liveStore.primary.title || liveStore.primary.slug || "Untitled")
+                  : ""
+                color: root.contentForeground
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.size(17)
+                font.bold: true
+                wrapMode: Text.WordWrap
+              }
+
+              Text {
+                width: parent.width
+                visible: !!(liveStore && liveStore.primary && liveStore.primary.snippet
+                            && String(liveStore.primary.snippet).length)
+                text: liveStore && liveStore.primary ? (liveStore.primary.snippet || "") : ""
+                color: root.contentForeground
+                opacity: 0.58
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.size(12)
+                wrapMode: Text.WordWrap
+                maximumLineCount: liveStore && liveStore.heroExpanded ? 24 : 3
+                elide: Text.ElideRight
+              }
+
+              // Expand / collapse affordance
+              Text {
+                text: liveStore && liveStore.heroExpanded ? "▾ Show less" : "▸ Show more"
+                color: root.fwAccent
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.size(11)
+                font.bold: true
+
+                MouseArea {
+                  anchors.fill: parent
+                  anchors.margins: -Style.space(4)
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: if (liveStore) liveStore.toggleHero()
+                }
+              }
+
+              // Actions only when expanded
+              Row {
+                spacing: Style.space(8)
+                visible: !!(liveStore && liveStore.heroExpanded)
+
+                Rectangle {
+                  width: Style.space(56)
+                  height: Style.space(26)
+                  radius: 6
+                  color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.22)
+                  border.width: 1
+                  border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.5)
+                  Text {
+                    anchors.centerIn: parent
+                    text: "Open"
+                    color: root.contentForeground
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.size(10)
+                    font.bold: true
+                  }
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: if (liveStore) liveStore.openPrimary()
+                  }
+                }
+
+                Rectangle {
+                  width: Style.space(72)
+                  height: Style.space(26)
+                  radius: 6
+                  color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                  border.width: 1
+                  border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                  Text {
+                    anchors.centerIn: parent
+                    text: "Copy title"
+                    color: root.contentForeground
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.size(10)
+                  }
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: if (liveStore) liveStore.copyPrimaryTitle()
+                  }
+                }
+
+                Rectangle {
+                  width: Style.space(68)
+                  height: Style.space(26)
+                  radius: 6
+                  color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                  border.width: 1
+                  border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                  Text {
+                    anchors.centerIn: parent
+                    text: "Copy link"
+                    color: root.contentForeground
+                    font.family: root.contentFontFamily
+                    font.pixelSize: Style.font.size(10)
+                  }
+                  MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: if (liveStore) liveStore.copyPrimaryLink()
+                  }
+                }
+              }
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              z: -1
+              cursorShape: Qt.PointingHandCursor
+              onClicked: if (liveStore) liveStore.toggleHero()
+            }
+          }
+
+          // RELATED header + cards
+          Text {
+            width: parent.width
+            visible: liveStore && liveStore.related && liveStore.related.length > 0
+            text: "RELATED"
+            color: root.contentForeground
+            opacity: 0.45
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.size(10)
+            font.bold: true
+            font.letterSpacing: 1.8
+          }
+
+          Repeater {
+            model: liveStore ? liveStore.related : []
+            delegate: Rectangle {
+              required property var modelData
+              required property int index
+              width: contentCol.width
+              height: relatedInner.implicitHeight + Style.space(20)
+              radius: 12
+              color: root.surfaceColor
+              border.width: 1
+              border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.1)
+
+              Column {
+                id: relatedInner
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Style.space(12)
+                spacing: Style.space(8)
+
+                Text {
+                  width: parent.width
+                  text: modelData.title || modelData.slug || "Untitled"
+                  color: root.contentForeground
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.size(14)
+                  font.bold: true
+                  wrapMode: Text.WordWrap
+                }
+
+                Text {
+                  width: parent.width
+                  visible: !!(modelData.snippet && String(modelData.snippet).length)
+                  text: modelData.snippet || ""
+                  color: root.contentForeground
+                  opacity: 0.55
+                  font.family: root.contentFontFamily
+                  font.pixelSize: Style.font.size(11)
+                  wrapMode: Text.WordWrap
+                  maximumLineCount: 4
+                  elide: Text.ElideRight
+                }
+
+                Row {
+                  spacing: Style.space(8)
+
+                  Rectangle {
+                    width: Style.space(56)
+                    height: Style.space(26)
+                    radius: 6
+                    color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.18)
+                    border.width: 1
+                    border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.4)
+                    Text {
+                      anchors.centerIn: parent
+                      text: "Open"
+                      color: root.contentForeground
+                      font.family: root.contentFontFamily
+                      font.pixelSize: Style.font.size(10)
+                      font.bold: true
+                    }
+                    MouseArea {
+                      anchors.fill: parent
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: {
+                        if (!liveStore) return
+                        liveStore.openUrlExternal(modelData.url || "")
+                      }
+                    }
+                  }
+
+                  Rectangle {
+                    width: Style.space(72)
+                    height: Style.space(26)
+                    radius: 6
+                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                    border.width: 1
+                    border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                    Text {
+                      anchors.centerIn: parent
+                      text: "Copy title"
+                      color: root.contentForeground
+                      font.family: root.contentFontFamily
+                      font.pixelSize: Style.font.size(10)
+                    }
+                    MouseArea {
+                      anchors.fill: parent
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: if (liveStore) liveStore.copyText(modelData.title || "")
+                    }
+                  }
+
+                  Rectangle {
+                    width: Style.space(68)
+                    height: Style.space(26)
+                    radius: 6
+                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                    border.width: 1
+                    border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+                    Text {
+                      anchors.centerIn: parent
+                      text: "Copy link"
+                      color: root.contentForeground
+                      font.family: root.contentFontFamily
+                      font.pixelSize: Style.font.size(10)
+                    }
+                    MouseArea {
+                      anchors.fill: parent
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: if (liveStore) liveStore.copyText(modelData.url || "")
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Flat results list (no direct match — no fake hero)
+        Column {
+          width: parent.width
+          spacing: Style.space(10)
+          visible: liveStore && liveStore.hasResults && !liveStore.hasPrimary
 
           Repeater {
             model: liveStore ? liveStore.results : []
@@ -333,10 +628,10 @@ Panel {
           }
         }
 
-        // Optional short summary for selected result (snippet — page API not public)
+        // Optional short summary for selected result (flat mode only)
         Rectangle {
           width: parent.width
-          visible: liveStore && liveStore.selectedResult
+          visible: liveStore && liveStore.selectedResult && !liveStore.hasPrimary
           height: visible ? summaryInner.implicitHeight + Style.space(20) : 0
           radius: 12
           color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.06)

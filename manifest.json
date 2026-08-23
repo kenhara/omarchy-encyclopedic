@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "harris.fair-witness",
   "name": "Fair Witness",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Harris Kenny",
   "license": "MIT",
   "description": "Look it up. Report what it says. Unofficial.",

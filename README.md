@@ -9,7 +9,14 @@ keys. No vendor chrome.
 **ID:** `harris.fair-witness`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.0
+**Version:** 0.1.1
+
+### 0.1.1
+- Direct-match **hero**: when title or slug equals the query (CI), show an
+  expandable MATCH preview at top (collapsed snippet + Show more; expanded
+  fuller snippet + Open / Copy title / Copy link). **RELATED** cards below for
+  everything else. No fake hero when there is no direct match.
+- `scripts/search.py` and `WitnessStore` emit/compute `{ primary, related, results }`.
 
 ### 0.1.0
 - MVP — bar `● FW`, panel search, `scripts/search.py` → Grokipedia public
@@ -86,10 +93,11 @@ python3 scripts/search.py --dry-run --query 'mars'
 1. **Left-click** bar `● FW` → panel.
 2. Type or paste a topic into the one field.
 3. Hit **LOOK UP** (or Enter).
-4. Result cards show title + snippet. **Open** opens the article URL;
-   **Copy title** / **Copy link** go to the clipboard. Click a card to select
-   it for the short **WITNESS** summary (snippet).
-5. **Middle-click** bar clears the last search (and cache).
+4. If the query exactly matches a title or slug, a **MATCH** hero appears at
+   the top (expandable). **RELATED** cards list the rest. Otherwise a flat
+   result list (and optional **WITNESS** snippet for the selected card).
+5. **Open** / **Copy title** / **Copy link** on hero or cards.
+6. **Middle-click** bar clears the last search (and cache).
 
 ### Controls
 
@@ -101,7 +109,8 @@ python3 scripts/search.py --dry-run --query 'mars'
 | LOOK UP | `scripts/search.py` → result cards |
 | Open | `xdg-open` / `Qt.openUrlExternally` on article URL |
 | Copy title / Copy link | Clipboard |
-| Select card | Updates WITNESS summary |
+| MATCH hero | Expand/collapse; Open / Copy when expanded |
+| Select card (no match) | Updates WITNESS summary |
 
 ## Remove
 
@@ -121,7 +130,7 @@ rm -rf ~/.cache/fair-witness
 - Article pages: `https://grokipedia.com/page/{slug}`
 
 Outbound HTTPS only when you click **LOOK UP** (or open a result). No auth.
-User-Agent: `FairWitness/0.1 (Omarchy unofficial; harris.fair-witness)`.
+User-Agent: `FairWitness/0.1.1 (Omarchy unofficial; harris.fair-witness)`.
 Polite client-side spacing between HTTP calls in one process.
 
 Cache (last **successful** search): `~/.cache/fair-witness/last.json`.
@@ -133,7 +142,7 @@ Cache (last **successful** search): `~/.cache/fair-witness/last.json`.
 ```sh
 python3 scripts/search.py --help
 python3 scripts/search.py --query 'mars' --limit 8
-# stdout JSON: {ok, results:[{title,slug,url,snippet}], error}
+# stdout JSON: {ok, results, primary, related, error}
 ```
 
 Empty query and `--dry-run` emit structured error JSON (non-zero exit).
@@ -141,7 +150,7 @@ Empty query and `--dry-run` emit structured error JSON (non-zero exit).
 ## Layout
 
 ```
-manifest.json          # harris.fair-witness @ 0.1.0
+manifest.json          # harris.fair-witness @ 0.1.1
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # search + LOOK UP + result cards
 WitnessStore.qml       # queryInput, lookUp, cache, Process → search.py
@@ -167,8 +176,8 @@ README.md
 
 ## Preview
 
-Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.0)
-with sample Mars results. Marketplace card: `preview.png` (from `preview.svg`).
+Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.1)
+with sample Mars as MATCH hero + RELATED. Marketplace card: `preview.png`.
 
 ## License
 

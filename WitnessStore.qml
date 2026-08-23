@@ -16,6 +16,9 @@ QtObject {
   property string lastError: ""
   property string toastText: ""
   property var results: []          // [{title,slug,url,snippet}, ...]
+  property var primary: null        // direct title/slug match, or null
+  property var related: []          // results without primary (or all if no primary)
+  property bool heroExpanded: false
   property int selectedIndex: -1
   property string searchBuf: ""
   property string lookedUpAt: ""
@@ -35,6 +38,7 @@ QtObject {
   readonly property string lastUpdatedText: formatUpdated(store.lookedUpAt)
 
   readonly property bool hasResults: store.results && store.results.length > 0
+  readonly property bool hasPrimary: !!(store.primary && typeof store.primary === "object")
 
   readonly property var selectedResult: {
     if (store.selectedIndex < 0 || !store.results || store.selectedIndex >= store.results.length)
@@ -165,6 +169,7 @@ QtObject {
     store.lastError = ""
     store.searchBuf = ""
     store.selectedIndex = -1
+    store.heroExpanded = false
     var lim = store.clampLimit(store.resultLimit)
     searchProc.command = [
       "python3",
@@ -205,6 +210,86 @@ QtObject {
     })
   }
 
+
+  function normKey(s) {
+    return String(s || "").trim().toLowerCase().replace(/\s+/g, " ")
+  }
+
+  function slugKey(s) {
+    return store.normKey(s).replace(/ /g, "_")
+  }
+
+  function splitPrimaryRelated(list, query) {
+    var results = Array.isArray(list) ? list : []
+    var related = []
+    var i
+    if (!results.length)
+      return { primary: null, related: [] }
+    var q = store.normKey(query)
+    var qSlug = store.slugKey(query)
+    if (!q.length)
+      return { primary: null, related: results.slice() }
+
+    var titleHit = null
+    var slugHit = null
+    for (i = 0; i < results.length; i++) {
+      var r = results[i]
+      if (!r || typeof r !== "object") continue
+      var title = store.normKey(r.title || "")
+      var slug = store.slugKey(r.slug || "")
+      if (!titleHit && title && title === q)
+        titleHit = r
+      if (!slugHit && slug && (slug === qSlug || slug === q))
+        slugHit = r
+      if (titleHit)
+        break
+    }
+    var primary = titleHit || slugHit
+    if (!primary)
+      return { primary: null, related: results.slice() }
+
+    related = []
+    for (i = 0; i < results.length; i++) {
+      if (results[i] !== primary)
+        related.push(results[i])
+    }
+    return { primary: primary, related: related }
+  }
+
+  function applyPrimarySplit(list, query) {
+    var split = store.splitPrimaryRelated(list, query)
+    store.primary = split.primary
+    store.related = split.related
+    if (!split.primary)
+      store.heroExpanded = false
+  }
+
+  function openPrimary() {
+    if (!store.primary) {
+      store.showToast("No result")
+      return false
+    }
+    return store.openUrlExternal(store.primary.url || "")
+  }
+
+  function copyPrimaryTitle() {
+    if (!store.primary)
+      return store.copyText("")
+    return store.copyText(store.primary.title || "")
+  }
+
+  function copyPrimaryLink() {
+    if (!store.primary)
+      return store.copyText("")
+    return store.copyText(store.primary.url || "")
+  }
+
+  function toggleHero() {
+    if (!store.primary) return
+    store.heroExpanded = !store.heroExpanded
+    store.dataChanged()
+  }
+
   function applyPayload(obj, source) {
     if (!obj || typeof obj !== "object") return false
     if (obj.cleared === true) return false
@@ -217,10 +302,32 @@ QtObject {
     store.lastQuery = obj.query || payload.query || store.lastQuery || ""
     if (store.lastQuery.length && !String(store.queryInput || "").trim().length)
       store.queryInput = store.lastQuery
+    // Prefer server-provided primary/related when present; else split client-side
+    var q = store.lastQuery || payload.query || ""
+    if (payload.primary !== undefined && payload.primary !== null
+        && typeof payload.primary === "object") {
+      store.primary = payload.primary
+      if (Array.isArray(payload.related)) {
+        store.related = payload.related
+      } else {
+        var pSlug = String(payload.primary.slug || "")
+        var pTitle = String(payload.primary.title || "")
+        store.related = list.filter(function(r) {
+          if (!r) return true
+          if (pSlug && String(r.slug || "") === pSlug) return false
+          if (!pSlug && pTitle && String(r.title || "") === pTitle) return false
+          return true
+        })
+      }
+    } else {
+      store.applyPrimarySplit(list, q)
+    }
     store.lookedUpAt = obj.lookedUpAt || store.lookedUpAt || ""
     store.dataSource = source || "search"
     store.lastError = payload.error ? String(payload.error) : ""
     store.selectedIndex = list.length ? 0 : -1
+    if (!store.primary)
+      store.heroExpanded = false
     store.dataChanged()
     return true
   }
@@ -266,6 +373,9 @@ QtObject {
 
   function clearResult() {
     store.results = []
+    store.primary = null
+    store.related = []
+    store.heroExpanded = false
     store.lastPayload = null
     store.lastError = ""
     store.lookedUpAt = ""

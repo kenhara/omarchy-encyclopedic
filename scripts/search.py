@@ -2,7 +2,7 @@
 """Fair Witness — public Grokipedia full-text search (no auth).
 
 CLI for Omarchy Quattro bar-widget.
-User-Agent: FairWitness/0.1 (Omarchy unofficial; harris.fair-witness)
+User-Agent: FairWitness/0.1.1 (Omarchy unofficial; harris.fair-witness)
 
 Unofficial. Not affiliated with xAI / Grokipedia.
 """
@@ -21,7 +21,7 @@ from typing import Any
 
 SEARCH_URL = "https://grokipedia.com/api/full-text-search"
 PAGE_BASE = "https://grokipedia.com/page"
-USER_AGENT = "FairWitness/0.1 (Omarchy unofficial; harris.fair-witness)"
+USER_AGENT = "FairWitness/0.1.1 (Omarchy unofficial; harris.fair-witness)"
 MIN_INTERVAL_SEC = 0.75  # polite rate limit between HTTP calls in one process
 
 _last_http_at = 0.0
@@ -103,6 +103,55 @@ def normalize_item(item: Any) -> dict[str, Any] | None:
     }
 
 
+
+def norm_key(s: str) -> str:
+    return re.sub(r"\s+", " ", str(s or "").strip().lower())
+
+
+def slug_key(s: str) -> str:
+    # Compare slug forms: spaces/underscores interchangeable
+    t = norm_key(s).replace(" ", "_")
+    return t
+
+
+def split_primary_related(
+    results: list[dict[str, Any]], query: str
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    """Pick direct match: exact title (CI) preferred, else exact slug (CI).
+
+    No fake primary when nothing equals the query.
+    """
+    if not results:
+        return None, []
+    q = norm_key(query)
+    q_slug = slug_key(query)
+    if not q:
+        return None, list(results)
+
+    title_hit: dict[str, Any] | None = None
+    slug_hit: dict[str, Any] | None = None
+    for r in results:
+        if not isinstance(r, dict):
+            continue
+        title = norm_key(r.get("title") or "")
+        slug = slug_key(r.get("slug") or "")
+        if title_hit is None and title and title == q:
+            title_hit = r
+        if slug_hit is None and slug and (slug == q_slug or slug == q):
+            slug_hit = r
+        if title_hit is not None:
+            break
+
+    primary = title_hit or slug_hit
+    if primary is None:
+        return None, list(results)
+
+    related = [r for r in results if r is not primary]
+    # Also drop identity-equal duplicates by slug if same object identity fails
+    if related and primary in results:
+        related = [r for r in results if r is not primary]
+    return primary, related
+
 def search(query: str, limit: int) -> dict[str, Any]:
     q = str(query or "").strip()
     if not q:
@@ -157,9 +206,12 @@ def search(query: str, limit: int) -> dict[str, Any]:
         if norm:
             results.append(norm)
 
+    primary, related = split_primary_related(results, q)
     return {
         "ok": True,
         "results": results,
+        "primary": primary,
+        "related": related,
         "error": None,
         "query": q,
         "limit": limit,

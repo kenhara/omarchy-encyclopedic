@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Fair Witness — HTML mock v0.1.0</title>
+<title>Fair Witness — HTML mock v0.1.1</title>
 <style>
   :root {
     --bg: #000;
@@ -77,6 +77,32 @@
   .toast {
     font-size: 11px; color: var(--ice); min-height: 14px;
   }
+  .hero {
+    background: rgba(110,200,232,.08); border: 1px solid rgba(110,200,232,.4);
+    border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+    cursor: pointer;
+  }
+  .hero .match-lbl {
+    font-size: 10px; letter-spacing: .18em; font-weight: 700; color: var(--ice);
+  }
+  .hero .title {
+    font-size: 17px; font-weight: 700; line-height: 1.25;
+  }
+  .hero .snip {
+    font-size: 12px; color: var(--mute); line-height: 1.45;
+  }
+  .hero .snip.collapsed {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .hero .more {
+    font-size: 11px; font-weight: 700; color: var(--ice); cursor: pointer;
+    user-select: none; width: fit-content;
+  }
+  .hero .more:hover { filter: brightness(1.15); }
+  .section-lbl {
+    font-size: 10px; letter-spacing: .18em; font-weight: 700;
+    color: var(--mute); opacity: .9; margin-top: 2px;
+  }
   .card {
     background: var(--surface); border: 1px solid rgba(240,240,250,.1);
     border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
@@ -107,11 +133,12 @@
   .foot {
     font-size: 10px; color: var(--mute); opacity: .55; line-height: 1.45;
   }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
   <div class="banner">
-    <span>HTML mock v0.1.0 · sample results · not live APIs</span>
+    <span>HTML mock v0.1.1 · sample results · not live APIs</span>
   </div>
   <div class="bar">
     <div class="bar-brand">OMARCHY</div>
@@ -135,10 +162,10 @@
 
       <div id="results"></div>
 
-      <div class="witness" id="witness">
+      <div class="witness hidden" id="witness">
         <div class="lbl">WITNESS</div>
-        <div class="wt" id="wTitle">Mars</div>
-        <div class="ws" id="wSnip">Mars is the fourth planet from the Sun, a terrestrial world renowned as the Red Planet due to the iron oxide (rust) that gives its surface a distinctive reddish...</div>
+        <div class="wt" id="wTitle"></div>
+        <div class="ws" id="wSnip"></div>
       </div>
 
       <div class="foot">unofficial · not affiliated with xAI / Grokipedia · Fair Witness is Heinlein</div>
@@ -150,7 +177,7 @@ const SAMPLE = [
     title: "Mars",
     slug: "Mars",
     url: "https://grokipedia.com/page/Mars",
-    snippet: "Mars is the fourth planet from the Sun, a terrestrial world renowned as the Red Planet due to the iron oxide (rust) that gives its surface a distinctive reddish..."
+    snippet: "Mars is the fourth planet from the Sun, a terrestrial world renowned as the Red Planet due to the iron oxide (rust) that gives its surface a distinctive reddish hue. It is the second-smallest planet in the Solar System after Mercury, with a thin atmosphere composed mostly of carbon dioxide. Surface features include the tallest volcano Olympus Mons, the vast canyon system Valles Marineris, and polar ice caps of water and dry ice."
   },
   {
     title: "Gerald Mars",
@@ -196,49 +223,153 @@ const SAMPLE = [
   }
 ];
 
+function normKey(s) {
+  return String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+function slugKey(s) {
+  return normKey(s).replace(/ /g, "_");
+}
+function splitPrimaryRelated(results, query) {
+  const q = normKey(query);
+  const qSlug = slugKey(query);
+  if (!results.length || !q) return { primary: null, related: results.slice() };
+  let titleHit = null, slugHit = null;
+  for (const r of results) {
+    const title = normKey(r.title || "");
+    const slug = slugKey(r.slug || "");
+    if (!titleHit && title && title === q) titleHit = r;
+    if (!slugHit && slug && (slug === qSlug || slug === q)) slugHit = r;
+    if (titleHit) break;
+  }
+  const primary = titleHit || slugHit;
+  if (!primary) return { primary: null, related: results.slice() };
+  return { primary, related: results.filter((r) => r !== primary) };
+}
+
 let selected = 0;
+let heroExpanded = false;
 const resultsEl = document.getElementById("results");
 const wTitle = document.getElementById("wTitle");
 const wSnip = document.getElementById("wSnip");
+const witness = document.getElementById("witness");
 const toast = document.getElementById("toast");
+const queryEl = document.getElementById("query");
+
+function cardEl(r, i, { selected: isSel, onSelect }) {
+  const card = document.createElement("div");
+  card.className = "card" + (isSel ? " selected" : "");
+  card.innerHTML =
+    '<div class="title"></div><div class="snip"></div><div class="actions">' +
+    '<button type="button" class="btn open">Open</button>' +
+    '<button type="button" class="btn" data-act="title">Copy title</button>' +
+    '<button type="button" class="btn" data-act="link">Copy link</button></div>';
+  card.querySelector(".title").textContent = r.title;
+  card.querySelector(".snip").textContent = r.snippet;
+  card.addEventListener("click", (e) => {
+    if (e.target.closest("button")) return;
+    onSelect(i);
+  });
+  card.querySelector(".open").addEventListener("click", (e) => {
+    e.stopPropagation();
+    window.open(r.url, "_blank", "noopener");
+    flash("Opened");
+  });
+  card.querySelector('[data-act="title"]').addEventListener("click", (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(r.title).then(() => flash("Copied"));
+  });
+  card.querySelector('[data-act="link"]').addEventListener("click", (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(r.url).then(() => flash("Copied"));
+  });
+  return card;
+}
 
 function render() {
+  const q = queryEl.value;
+  const { primary, related } = splitPrimaryRelated(SAMPLE, q);
   resultsEl.innerHTML = "";
-  SAMPLE.forEach((r, i) => {
-    const card = document.createElement("div");
-    card.className = "card" + (i === selected ? " selected" : "");
-    card.innerHTML =
-      '<div class="title"></div><div class="snip"></div><div class="actions">' +
-      '<button type="button" class="btn open">Open</button>' +
-      '<button type="button" class="btn" data-act="title">Copy title</button>' +
-      '<button type="button" class="btn" data-act="link">Copy link</button></div>';
-    card.querySelector(".title").textContent = r.title;
-    card.querySelector(".snip").textContent = r.snippet;
-    card.addEventListener("click", (e) => {
-      if (e.target.closest("button")) return;
-      selected = i;
-      updateWitness();
+
+  if (primary) {
+    witness.classList.add("hidden");
+    const hero = document.createElement("div");
+    hero.className = "hero";
+    hero.innerHTML =
+      '<div class="match-lbl">MATCH</div>' +
+      '<div class="title"></div>' +
+      '<div class="snip"></div>' +
+      '<div class="more"></div>' +
+      '<div class="actions hero-actions"></div>';
+    hero.querySelector(".title").textContent = primary.title;
+    const snip = hero.querySelector(".snip");
+    snip.textContent = primary.snippet;
+    snip.classList.toggle("collapsed", !heroExpanded);
+    const more = hero.querySelector(".more");
+    more.textContent = heroExpanded ? "▾ Show less" : "▸ Show more";
+    const actions = hero.querySelector(".hero-actions");
+    if (heroExpanded) {
+      actions.innerHTML =
+        '<button type="button" class="btn open">Open</button>' +
+        '<button type="button" class="btn" data-act="title">Copy title</button>' +
+        '<button type="button" class="btn" data-act="link">Copy link</button>';
+      actions.querySelector(".open").addEventListener("click", (e) => {
+        e.stopPropagation();
+        window.open(primary.url, "_blank", "noopener");
+        flash("Opened");
+      });
+      actions.querySelector('[data-act="title"]').addEventListener("click", (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(primary.title).then(() => flash("Copied"));
+      });
+      actions.querySelector('[data-act="link"]').addEventListener("click", (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(primary.url).then(() => flash("Copied"));
+      });
+    }
+    more.addEventListener("click", (e) => {
+      e.stopPropagation();
+      heroExpanded = !heroExpanded;
       render();
     });
-    card.querySelector(".open").addEventListener("click", (e) => {
-      e.stopPropagation();
-      window.open(r.url, "_blank", "noopener");
-      flash("Opened");
+    hero.addEventListener("click", (e) => {
+      if (e.target.closest("button") || e.target.closest(".more")) return;
+      heroExpanded = !heroExpanded;
+      render();
     });
-    card.querySelector('[data-act="title"]').addEventListener("click", (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(r.title).then(() => flash("Copied"));
+    resultsEl.appendChild(hero);
+
+    if (related.length) {
+      const lbl = document.createElement("div");
+      lbl.className = "section-lbl";
+      lbl.textContent = "RELATED";
+      resultsEl.appendChild(lbl);
+      related.forEach((r, i) => {
+        resultsEl.appendChild(cardEl(r, i, {
+          selected: false,
+          onSelect: () => {}
+        }));
+      });
+    }
+  } else {
+    // Flat list — no fake hero
+    SAMPLE.forEach((r, i) => {
+      resultsEl.appendChild(cardEl(r, i, {
+        selected: i === selected,
+        onSelect: (idx) => {
+          selected = idx;
+          updateWitness();
+          render();
+        }
+      }));
     });
-    card.querySelector('[data-act="link"]').addEventListener("click", (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(r.url).then(() => flash("Copied"));
-    });
-    resultsEl.appendChild(card);
-  });
+    updateWitness();
+    witness.classList.remove("hidden");
+  }
 }
 
 function updateWitness() {
   const r = SAMPLE[selected];
+  if (!r) return;
   wTitle.textContent = r.title;
   wSnip.textContent = r.snippet;
 }
@@ -251,8 +382,15 @@ function flash(msg) {
 document.getElementById("lookupBtn").addEventListener("click", () => {
   flash(SAMPLE.length + " results");
   selected = 0;
-  updateWitness();
+  heroExpanded = false;
   render();
+});
+
+queryEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("lookupBtn").click();
+  }
 });
 
 document.getElementById("barPill").addEventListener("click", () => {
@@ -260,7 +398,8 @@ document.getElementById("barPill").addEventListener("click", () => {
   p.style.display = p.style.display === "none" ? "flex" : "none";
 });
 
-updateWitness();
+// Default filled state demos Mars as expandable hero + related
+heroExpanded = true;
 render();
 </script>
 </body>
