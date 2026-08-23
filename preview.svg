@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-label="Fair Witness marketplace preview">
+  <defs>
+    <linearGradient id="desk" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0c0c10"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="78%" cy="18%" r="45%">
+      <stop offset="0%" stop-color="#6ec8e8" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="760" fill="url(#desk)"/>
+  <rect width="1200" height="760" fill="url(#glow)"/>
+  <!-- bar -->
+  <rect x="0" y="0" width="1200" height="44" fill="#0e0e12" opacity="0.95"/>
+  <text x="28" y="28" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" letter-spacing="4" opacity="0.85">OMARCHY</text>
+  <rect x="1040" y="10" width="132" height="24" rx="6" fill="rgba(240,240,250,0.08)"/>
+  <text x="1056" y="27" fill="#6ec8e8" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">●</text>
+  <text x="1074" y="27" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">FW</text>
+  <!-- panel -->
+  <rect x="720" y="56" width="440" height="670" rx="16" fill="#121216" stroke="rgba(240,240,250,0.12)"/>
+  <text x="748" y="100" fill="#6ec8e8" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="700" letter-spacing="3.5">FAIR WITNESS</text>
+  <text x="748" y="126" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" opacity="0.5">look it up · report what it says</text>
+  <!-- search -->
+  <rect x="748" y="148" width="384" height="48" rx="10" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.14)"/>
+  <text x="764" y="178" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif">mars</text>
+  <!-- LOOK UP -->
+  <rect x="748" y="212" width="384" height="48" rx="10" fill="#6ec8e8"/>
+  <text x="890" y="243" fill="#0a1014" font-size="15" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" letter-spacing="3">LOOK UP</text>
+  <!-- result cards -->
+  <rect x="748" y="280" width="384" height="110" rx="12" fill="rgba(240,240,250,0.05)" stroke="rgba(110,200,232,0.4)"/>
+  <text x="768" y="308" fill="#f0f0fa" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Mars</text>
+  <text x="768" y="330" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">Mars is the fourth planet from the Sun, a terrestrial</text>
+  <text x="768" y="346" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">world renowned as the Red Planet…</text>
+  <rect x="768" y="358" width="48" height="22" rx="5" fill="rgba(110,200,232,0.18)" stroke="rgba(110,200,232,0.4)"/>
+  <text x="778" y="373" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Open</text>
+  <rect x="824" y="358" width="72" height="22" rx="5" fill="rgba(240,240,250,0.08)" stroke="rgba(240,240,250,0.12)"/>
+  <text x="834" y="373" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif">Copy title</text>
+  <rect x="904" y="358" width="68" height="22" rx="5" fill="rgba(240,240,250,0.08)" stroke="rgba(240,240,250,0.12)"/>
+  <text x="914" y="373" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif">Copy link</text>
+
+  <rect x="748" y="402" width="384" height="78" rx="12" fill="rgba(240,240,250,0.05)" stroke="rgba(240,240,250,0.1)"/>
+  <text x="768" y="428" fill="#f0f0fa" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Gerald Mars</text>
+  <text x="768" y="450" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">British social anthropologist… workplace culture</text>
+  <text x="768" y="466" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">and organizational behavior.</text>
+
+  <rect x="748" y="492" width="384" height="78" rx="12" fill="rgba(240,240,250,0.05)" stroke="rgba(240,240,250,0.1)"/>
+  <text x="768" y="518" fill="#f0f0fa" font-size="14" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Mars, Bars</text>
+  <text x="768" y="540" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">Confectionery by Mars, Inc. — nougat, toffee,</text>
+  <text x="768" y="556" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">milk chocolate. First produced 1932.</text>
+
+  <!-- witness summary -->
+  <rect x="748" y="584" width="384" height="88" rx="12" fill="rgba(110,200,232,0.06)" stroke="rgba(110,200,232,0.22)"/>
+  <text x="768" y="608" fill="#6ec8e8" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" letter-spacing="1.6">WITNESS</text>
+  <text x="768" y="630" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Mars</text>
+  <text x="768" y="652" fill="#f0f0fa" font-size="11" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.55">Fourth planet from the Sun — the Red Planet.</text>
+
+  <text x="748" y="702" fill="#f0f0fa" font-size="10" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.28">unofficial · not affiliated with xAI / Grokipedia · Heinlein</text>
+  <!-- left caption -->
+  <text x="64" y="340" fill="#f0f0fa" font-size="42" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" opacity="0.9">Fair</text>
+  <text x="64" y="392" fill="#6ec8e8" font-size="42" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Witness</text>
+  <text x="64" y="436" fill="#f0f0fa" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.5">look it up · report what it says</text>
+  <text x="64" y="470" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.35">v0.1.0 · unofficial · Heinlein</text>
+</svg>

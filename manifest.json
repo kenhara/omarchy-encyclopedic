@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "harris.fair-witness",
+  "name": "Fair Witness",
+  "version": "0.1.0",
+  "author": "Harris Kenny",
+  "license": "MIT",
+  "description": "Look it up. Report what it says. Unofficial.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "keywords": [
+    "fair witness",
+    "grokipedia",
+    "search",
+    "lookup",
+    "encyclopedia",
+    "heinlein",
+    "witness"
+  ],
+  "barWidget": {
+    "displayName": "Fair Witness",
+    "description": "Look it up. Report what it says. Public Grokipedia search. Unofficial.",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "aliases": [
+      "fair witness",
+      "witness",
+      "fw",
+      "grokipedia",
+      "look it up"
+    ],
+    "defaults": {
+      "resultLimit": 8
+    },
+    "schema": [
+      {
+        "key": "resultLimit",
+        "type": "int",
+        "label": "Result limit",
+        "description": "Max search results to request (1–20). Default 8.",
+        "defaultValue": 8
+      }
+    ]
+  }
+}

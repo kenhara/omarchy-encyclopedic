@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fair Witness — HTML mock v0.1.0</title>
+<style>
+  :root {
+    --bg: #000;
+    --fg: rgba(240,240,250,1);
+    --mute: rgba(240,240,250,.45);
+    --surface: rgba(240,240,250,.06);
+    --ice: #6ec8e8;
+    --ink: #0a1014;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --bar-h: 36px;
+    --panel-w: 420px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #000; color: var(--fg); font-family: var(--font); }
+  body {
+    background:
+      radial-gradient(ellipse 55% 40% at 72% 12%, rgba(110,200,232,.1), transparent 55%),
+      linear-gradient(180deg, #0a0a0c, #000);
+  }
+  button, input { font-family: inherit; }
+  .banner {
+    height: 28px; display: flex; align-items: center; justify-content: center; gap: 14px;
+    background: #121218; border-bottom: 1px solid rgba(240,240,250,.08);
+    font-size: 11px; letter-spacing: .06em; color: var(--mute); font-family: var(--mono);
+  }
+  .bar {
+    height: var(--bar-h); display: flex; align-items: center; justify-content: space-between;
+    padding: 0 12px 0 16px; background: rgba(12,12,14,.88); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(240,240,250,.06);
+  }
+  .bar-brand { font-size: 11px; letter-spacing: .18em; opacity: .85; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
+    border-radius: 6px; background: rgba(240,240,250,.08); font-size: 12px; cursor: pointer;
+    border: none; color: var(--fg);
+  }
+  .pill:hover { background: rgba(240,240,250,.12); }
+  .pill .dot { color: var(--ice); }
+  .wrap { position: relative; height: calc(100% - 28px - var(--bar-h)); overflow: auto; }
+  .hint {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    opacity: .1; letter-spacing: .35em; text-transform: uppercase; font-size: 13px; pointer-events: none;
+  }
+  .panel {
+    position: absolute; top: 16px; right: 16px; width: var(--panel-w);
+    background: linear-gradient(180deg, #121216, #0a0a0c); border: 1px solid rgba(240,240,250,.1);
+    border-radius: 14px; padding: 18px; box-shadow: 0 18px 48px rgba(0,0,0,.65);
+    display: flex; flex-direction: column; gap: 14px;
+    max-height: calc(100% - 32px); overflow: auto;
+  }
+  .head h1 {
+    font-size: 18px; letter-spacing: .22em; font-weight: 700; color: var(--ice);
+  }
+  .head .sub { font-size: 12px; color: var(--mute); margin-top: 6px; }
+  .paste-wrap {
+    background: var(--surface); border: 1px solid rgba(240,240,250,.14);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .paste {
+    width: 100%; background: transparent; border: none; outline: none;
+    color: var(--fg); font-size: 13px;
+  }
+  .paste::placeholder { color: rgba(240,240,250,.32); }
+  .lookup {
+    background: var(--ice); border: none; border-radius: 10px; padding: 14px;
+    text-align: center; font-weight: 700; font-size: 15px; letter-spacing: .18em;
+    cursor: pointer; color: var(--ink); width: 100%;
+  }
+  .lookup:hover { filter: brightness(1.05); }
+  .toast {
+    font-size: 11px; color: var(--ice); min-height: 14px;
+  }
+  .card {
+    background: var(--surface); border: 1px solid rgba(240,240,250,.1);
+    border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+    cursor: pointer;
+  }
+  .card.selected { border-color: rgba(110,200,232,.45); }
+  .card .title { font-size: 14px; font-weight: 700; }
+  .card .snip { font-size: 11px; color: var(--mute); line-height: 1.4; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 5px 10px; font-size: 10px; border-radius: 6px; cursor: pointer;
+    border: 1px solid rgba(240,240,250,.12); background: rgba(240,240,250,.08);
+    color: var(--fg);
+  }
+  .btn.open {
+    background: rgba(110,200,232,.18); border-color: rgba(110,200,232,.4); font-weight: 700;
+  }
+  .btn:hover { background: rgba(240,240,250,.14); }
+  .witness {
+    background: rgba(110,200,232,.06); border: 1px solid rgba(110,200,232,.22);
+    border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .witness .lbl {
+    font-size: 10px; letter-spacing: .16em; font-weight: 700; color: var(--ice);
+  }
+  .witness .wt { font-size: 13px; font-weight: 700; }
+  .witness .ws { font-size: 11px; color: var(--mute); line-height: 1.45; }
+  .foot {
+    font-size: 10px; color: var(--mute); opacity: .55; line-height: 1.45;
+  }
+</style>
+</head>
+<body>
+  <div class="banner">
+    <span>HTML mock v0.1.0 · sample results · not live APIs</span>
+  </div>
+  <div class="bar">
+    <div class="bar-brand">OMARCHY</div>
+    <button type="button" class="pill" id="barPill" title="Fair Witness — look it up · middle: clear"><span class="dot">●</span> FW</button>
+  </div>
+  <div class="wrap">
+    <div class="hint">report what it says</div>
+    <div class="panel" id="panel">
+      <div class="head">
+        <h1>FAIR WITNESS</h1>
+        <div class="sub">look it up · report what it says</div>
+      </div>
+
+      <div class="paste-wrap">
+        <input class="paste" id="query" type="text" value="mars" spellcheck="false"
+          placeholder="search or paste a topic…" />
+      </div>
+
+      <button type="button" class="lookup" id="lookupBtn">LOOK UP</button>
+      <div class="toast" id="toast">8 results</div>
+
+      <div id="results"></div>
+
+      <div class="witness" id="witness">
+        <div class="lbl">WITNESS</div>
+        <div class="wt" id="wTitle">Mars</div>
+        <div class="ws" id="wSnip">Mars is the fourth planet from the Sun, a terrestrial world renowned as the Red Planet due to the iron oxide (rust) that gives its surface a distinctive reddish...</div>
+      </div>
+
+      <div class="foot">unofficial · not affiliated with xAI / Grokipedia · Fair Witness is Heinlein</div>
+    </div>
+  </div>
+<script>
+const SAMPLE = [
+  {
+    title: "Mars",
+    slug: "Mars",
+    url: "https://grokipedia.com/page/Mars",
+    snippet: "Mars is the fourth planet from the Sun, a terrestrial world renowned as the Red Planet due to the iron oxide (rust) that gives its surface a distinctive reddish..."
+  },
+  {
+    title: "Gerald Mars",
+    slug: "gerald_mars",
+    url: "https://grokipedia.com/page/gerald_mars",
+    snippet: "Gerald Mars is a British social anthropologist renowned for his interdisciplinary studies of workplace culture, deviance, and organizational behavior in modern industrial societies."
+  },
+  {
+    title: "Mars, Bars",
+    slug: "mars_bars",
+    url: "https://grokipedia.com/page/mars_bars",
+    snippet: "The Mars bar is a confectionery product manufactured by Mars, Incorporated, consisting primarily of nougat and toffee enrobed in milk chocolate. First produced in 1932 in Slough, England."
+  },
+  {
+    title: "Curiosity (rover)",
+    slug: "Curiosity_(rover)",
+    url: "https://grokipedia.com/page/Curiosity_(rover)",
+    snippet: "Curiosity is a car-sized Mars rover designed to explore the Gale crater on Mars as part of NASA's Mars Science Laboratory mission."
+  },
+  {
+    title: "Olympus Mons",
+    slug: "Olympus_Mons",
+    url: "https://grokipedia.com/page/Olympus_Mons",
+    snippet: "Olympus Mons is a shield volcano on Mars and the tallest planetary mountain in the Solar System, rising about 22 km above the surrounding plains."
+  },
+  {
+    title: "Valles Marineris",
+    slug: "Valles_Marineris",
+    url: "https://grokipedia.com/page/Valles_Marineris",
+    snippet: "Valles Marineris is a vast system of canyons on Mars, stretching nearly 4,000 km along the equator — often compared to a scaled-up Grand Canyon."
+  },
+  {
+    title: "Phobos (moon)",
+    slug: "Phobos_(moon)",
+    url: "https://grokipedia.com/page/Phobos_(moon)",
+    snippet: "Phobos is the larger and closer of the two natural satellites of Mars. It is a small, irregularly shaped body covered in craters and grooves."
+  },
+  {
+    title: "Perseverance (rover)",
+    slug: "Perseverance_(rover)",
+    url: "https://grokipedia.com/page/Perseverance_(rover)",
+    snippet: "Perseverance is a Mars rover exploring Jezero crater for signs of ancient life and collecting samples for a future return mission."
+  }
+];
+
+let selected = 0;
+const resultsEl = document.getElementById("results");
+const wTitle = document.getElementById("wTitle");
+const wSnip = document.getElementById("wSnip");
+const toast = document.getElementById("toast");
+
+function render() {
+  resultsEl.innerHTML = "";
+  SAMPLE.forEach((r, i) => {
+    const card = document.createElement("div");
+    card.className = "card" + (i === selected ? " selected" : "");
+    card.innerHTML =
+      '<div class="title"></div><div class="snip"></div><div class="actions">' +
+      '<button type="button" class="btn open">Open</button>' +
+      '<button type="button" class="btn" data-act="title">Copy title</button>' +
+      '<button type="button" class="btn" data-act="link">Copy link</button></div>';
+    card.querySelector(".title").textContent = r.title;
+    card.querySelector(".snip").textContent = r.snippet;
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      selected = i;
+      updateWitness();
+      render();
+    });
+    card.querySelector(".open").addEventListener("click", (e) => {
+      e.stopPropagation();
+      window.open(r.url, "_blank", "noopener");
+      flash("Opened");
+    });
+    card.querySelector('[data-act="title"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(r.title).then(() => flash("Copied"));
+    });
+    card.querySelector('[data-act="link"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(r.url).then(() => flash("Copied"));
+    });
+    resultsEl.appendChild(card);
+  });
+}
+
+function updateWitness() {
+  const r = SAMPLE[selected];
+  wTitle.textContent = r.title;
+  wSnip.textContent = r.snippet;
+}
+
+function flash(msg) {
+  toast.textContent = msg;
+  setTimeout(() => { toast.textContent = SAMPLE.length + " results"; }, 1200);
+}
+
+document.getElementById("lookupBtn").addEventListener("click", () => {
+  flash(SAMPLE.length + " results");
+  selected = 0;
+  updateWitness();
+  render();
+});
+
+document.getElementById("barPill").addEventListener("click", () => {
+  const p = document.getElementById("panel");
+  p.style.display = p.style.display === "none" ? "flex" : "none";
+});
+
+updateWitness();
+render();
+</script>
+</body>
+</html>
