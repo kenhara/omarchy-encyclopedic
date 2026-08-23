@@ -9,7 +9,14 @@ keys. No vendor chrome.
 **ID:** `harris.fair-witness`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.1
+**Version:** 0.1.2
+
+### 0.1.2
+- Audit harden (see `AUDIT.md` / `AUDIT-NOTES.md`): unescape-before-strip HTML,
+  `Text.PlainText` on remote title/snippet/WITNESS, https-only Open,
+  `Quickshell.clipboardText` + honest copy toasts, `resultLimit` integer bounds,
+  FileView cache (no mkdir race), keep prior results on failed lookup, drop dead
+  summon/`aliases`, hover, focus-on-open, UA from `manifest.json`.
 
 ### 0.1.1
 - Direct-match **hero**: when title or slug equals the query (CI), show an
@@ -34,7 +41,7 @@ Local folder: **`omarchy-fair-witness`**.
 sponsored by xAI, Grokipedia, or any related entity. “Fair Witness” is a
 literary reference to Robert A. Heinlein’s *Stranger in a Strange Land*. This
 plugin is a thin personal client that calls a **public read** HTTP search API.
-Aliases / keywords may mention Grokipedia for discovery; the display name does
+Keywords may mention Grokipedia for marketplace search; the display name does
 not.
 
 ## Install
@@ -107,7 +114,7 @@ python3 scripts/search.py --dry-run --query 'mars'
 | Middle-click bar | Clear last search (+ cache); toast "Cleared" |
 | Search field | One paste/type; Enter triggers LOOK UP |
 | LOOK UP | `scripts/search.py` → result cards |
-| Open | `xdg-open` / `Qt.openUrlExternally` on article URL |
+| Open | `https:` URLs only (`Qt.openUrlExternally` / `xdg-open`) |
 | Copy title / Copy link | Clipboard |
 | MATCH hero | Expand/collapse; Open / Copy when expanded |
 | Select card (no match) | Updates WITNESS summary |
@@ -130,8 +137,8 @@ rm -rf ~/.cache/fair-witness
 - Article pages: `https://grokipedia.com/page/{slug}`
 
 Outbound HTTPS only when you click **LOOK UP** (or open a result). No auth.
-User-Agent: `FairWitness/0.1.1 (Omarchy unofficial; harris.fair-witness)`.
-Polite client-side spacing between HTTP calls in one process.
+User-Agent: `FairWitness/<manifest version> (Omarchy unofficial; harris.fair-witness)`
+(version read from `manifest.json`). One HTTPS GET per LOOK UP.
 
 Cache (last **successful** search): `~/.cache/fair-witness/last.json`.
 
@@ -150,7 +157,7 @@ Empty query and `--dry-run` emit structured error JSON (non-zero exit).
 ## Layout
 
 ```
-manifest.json          # harris.fair-witness @ 0.1.1
+manifest.json          # harris.fair-witness @ 0.1.2
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # search + LOOK UP + result cards
 WitnessStore.qml       # queryInput, lookUp, cache, Process → search.py
@@ -176,7 +183,7 @@ README.md
 
 ## Preview
 
-Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.1)
+Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.2)
 with sample Mars as MATCH hero + RELATED. Marketplace card: `preview.png`.
 
 ## License

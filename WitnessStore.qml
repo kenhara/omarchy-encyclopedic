@@ -28,9 +28,17 @@ QtObject {
 
   readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/fair-witness"
   readonly property string cachePath: cacheDir + "/last.json"
-  readonly property string pluginDir: String(Qt.resolvedUrl("."))
-    .replace(/^file:\/\//, "")
-    .replace(/\/$/, "")
+  // FW-20: percent-decode so paths with spaces work for python3
+  readonly property string pluginDir: {
+    var raw = String(Qt.resolvedUrl("."))
+      .replace(/^file:\/\//, "")
+      .replace(/\/$/, "")
+    try {
+      return decodeURIComponent(raw)
+    } catch (e) {
+      return raw
+    }
+  }
   readonly property string searchPath: pluginDir + "/scripts/search.py"
 
   readonly property string barGlyph: "●"
@@ -46,8 +54,6 @@ QtObject {
     return store.results[store.selectedIndex]
   }
 
-  signal dataChanged()
-
   function clampLimit(n) {
     var v = parseInt(n, 10)
     if (!isFinite(v)) return 8
@@ -60,7 +66,6 @@ QtObject {
     opts = opts || {}
     if (opts.resultLimit !== undefined)
       store.resultLimit = store.clampLimit(opts.resultLimit)
-    store.dataChanged()
   }
 
   function formatUpdated(iso) {
@@ -86,38 +91,55 @@ QtObject {
       return false
     }
     try {
-      if (typeof Quickshell !== "undefined" && Quickshell.clipboard) {
-        Quickshell.clipboard.text = t
+      if (typeof Quickshell !== "undefined" && Quickshell.clipboardText !== undefined) {
+        Quickshell.clipboardText = t
         store.showToast("Copied")
         return true
       }
     } catch (e) {}
+    // Shell fallback: exactly one of wl-copy / xclip / xsel; bash -c (not -lc).
+    // Toast only on copyProc success (onExited) — never claim Copied early.
     copyProc.command = [
-      "bash", "-lc",
-      "printf '%s' \"$1\" | (command -v wl-copy >/dev/null && wl-copy || command -v xclip >/dev/null && xclip -selection clipboard || command -v xsel >/dev/null && xsel --clipboard --input || cat >/dev/null)",
+      "bash", "-c",
+      't="$1"; if command -v wl-copy >/dev/null 2>&1; then printf "%s" "$t" | wl-copy; elif command -v xclip >/dev/null 2>&1; then printf "%s" "$t" | xclip -selection clipboard; elif command -v xsel >/dev/null 2>&1; then printf "%s" "$t" | xsel --clipboard --input; else exit 127; fi',
       "fw-copy", t
     ]
     copyProc.running = true
-    store.showToast("Copied")
     return true
   }
 
-  function openUrlExternal(url) {
+  function articleUrlFromSlug(slug) {
+    var s = String(slug || "").trim().replace(/^\//, "")
+    if (!s.length) return ""
+    return "https://grokipedia.com/page/" + encodeURIComponent(s).replace(/%2F/g, "/")
+  }
+
+  function sanitizeOpenUrl(url, slug) {
     var u = String(url || "").trim()
+    if (u.toLowerCase().indexOf("https:") === 0)
+      return u
+    var built = store.articleUrlFromSlug(slug)
+    if (built.length)
+      return built
+    return ""
+  }
+
+  function openUrlExternal(url, slug) {
+    var u = store.sanitizeOpenUrl(url, slug)
     if (!u.length) {
-      store.showToast("No URL")
+      store.showToast("Refused — https only")
       return false
     }
     try {
-      Qt.openUrlExternally(u)
-      store.showToast("Opened")
-      return true
-    } catch (e) {
-      openUrlProc.command = ["xdg-open", u]
-      openUrlProc.running = true
-      store.showToast("Opened")
-      return true
-    }
+      var ok = Qt.openUrlExternally(u)
+      if (ok !== false) {
+        store.showToast("Opened")
+        return true
+      }
+    } catch (e) {}
+    openUrlProc.command = ["xdg-open", u]
+    openUrlProc.running = true
+    return true
   }
 
   function selectResult(index) {
@@ -127,7 +149,6 @@ QtObject {
     } else {
       store.selectedIndex = i
     }
-    store.dataChanged()
   }
 
   function openResult(index) {
@@ -138,7 +159,7 @@ QtObject {
     }
     store.selectedIndex = i
     var r = store.results[i]
-    return store.openUrlExternal(r && r.url ? r.url : "")
+    return store.openUrlExternal(r && r.url ? r.url : "", r && r.slug ? r.slug : "")
   }
 
   function copyTitle(index) {
@@ -162,13 +183,11 @@ QtObject {
     if (!q.length) {
       store.lastError = "Enter something to look up"
       store.showToast(store.lastError)
-      store.dataChanged()
       return
     }
     store.loading = true
     store.lastError = ""
     store.searchBuf = ""
-    store.selectedIndex = -1
     store.heroExpanded = false
     var lim = store.clampLimit(store.resultLimit)
     searchProc.command = [
@@ -178,7 +197,6 @@ QtObject {
       "--limit", String(lim)
     ]
     searchProc.running = true
-    store.dataChanged()
   }
 
   function buildCacheObject(payload, atIso) {
@@ -192,25 +210,20 @@ QtObject {
   }
 
   function persistToDisk(obj) {
+    // FileView.setText mkpath — no mkdir Process + Qt.callLater race (FW-06).
     var body = JSON.stringify(obj || store.buildCacheObject(), null, 2) + "\n"
-    ensureCacheDir.running = true
-    Qt.callLater(function() {
-      try {
-        cacheFile.setText(body)
-      } catch (e) {}
-    })
+    try {
+      cacheFile.setText(body)
+    } catch (e) {}
   }
 
   function persistClear() {
-    ensureCacheDir.running = true
-    Qt.callLater(function() {
-      try {
-        cacheFile.setText(JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n")
-      } catch (e) {}
-    })
+    try {
+      cacheFile.setText(JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n")
+    } catch (e) {}
   }
 
-
+  // Fallback split only when search.py omitted primary/related (FW-12).
   function normKey(s) {
     return String(s || "").trim().toLowerCase().replace(/\s+/g, " ")
   }
@@ -269,7 +282,7 @@ QtObject {
       store.showToast("No result")
       return false
     }
-    return store.openUrlExternal(store.primary.url || "")
+    return store.openUrlExternal(store.primary.url || "", store.primary.slug || "")
   }
 
   function copyPrimaryTitle() {
@@ -287,7 +300,6 @@ QtObject {
   function toggleHero() {
     if (!store.primary) return
     store.heroExpanded = !store.heroExpanded
-    store.dataChanged()
   }
 
   function applyPayload(obj, source) {
@@ -295,6 +307,14 @@ QtObject {
     if (obj.cleared === true) return false
     var payload = obj.payload !== undefined ? obj.payload : obj
     if (!payload || typeof payload !== "object") return false
+
+    // FW-08: failed lookup must not wipe prior good results
+    if (payload.ok === false) {
+      store.lastError = payload.error ? String(payload.error) : "Search failed"
+      store.dataSource = source || store.dataSource
+      return false
+    }
+
     var list = payload.results
     if (!Array.isArray(list)) list = []
     store.lastPayload = payload
@@ -302,33 +322,36 @@ QtObject {
     store.lastQuery = obj.query || payload.query || store.lastQuery || ""
     if (store.lastQuery.length && !String(store.queryInput || "").trim().length)
       store.queryInput = store.lastQuery
-    // Prefer server-provided primary/related when present; else split client-side
+
+    // FW-12: trust search.py primary/related when the key is present
     var q = store.lastQuery || payload.query || ""
-    if (payload.primary !== undefined && payload.primary !== null
-        && typeof payload.primary === "object") {
-      store.primary = payload.primary
+    if (Object.prototype.hasOwnProperty.call(payload, "primary")) {
+      store.primary = (payload.primary && typeof payload.primary === "object")
+        ? payload.primary : null
       if (Array.isArray(payload.related)) {
         store.related = payload.related
-      } else {
-        var pSlug = String(payload.primary.slug || "")
-        var pTitle = String(payload.primary.title || "")
+      } else if (store.primary) {
+        var pSlug = String(store.primary.slug || "")
+        var pTitle = String(store.primary.title || "")
         store.related = list.filter(function(r) {
           if (!r) return true
           if (pSlug && String(r.slug || "") === pSlug) return false
           if (!pSlug && pTitle && String(r.title || "") === pTitle) return false
           return true
         })
+      } else {
+        store.related = list.slice()
       }
     } else {
       store.applyPrimarySplit(list, q)
     }
+
     store.lookedUpAt = obj.lookedUpAt || store.lookedUpAt || ""
     store.dataSource = source || "search"
     store.lastError = payload.error ? String(payload.error) : ""
     store.selectedIndex = list.length ? 0 : -1
     if (!store.primary)
       store.heroExpanded = false
-    store.dataChanged()
     return true
   }
 
@@ -338,7 +361,7 @@ QtObject {
     store.searchBuf = ""
     if (!raw.length) {
       store.lastError = "search produced no output (exit " + exitCode + ")"
-      store.dataChanged()
+      store.showToast(store.lastError)
       return
     }
     var lines = raw.split("\n")
@@ -355,19 +378,20 @@ QtObject {
     try {
       var obj = JSON.parse(blob)
       store.lastQuery = String(store.queryInput || "").trim()
-      store.lookedUpAt = new Date().toISOString()
-      store.applyPayload({ payload: obj, query: store.lastQuery, lookedUpAt: store.lookedUpAt }, "search")
       if (obj.ok) {
+        store.lookedUpAt = new Date().toISOString()
+        store.applyPayload({ payload: obj, query: store.lastQuery, lookedUpAt: store.lookedUpAt }, "search")
         var n = (obj.results || []).length
         store.showToast(n ? (n + " result" + (n === 1 ? "" : "s")) : "No matches")
         store.persistToDisk(store.buildCacheObject(obj, store.lookedUpAt))
       } else {
-        store.showToast(store.lastError || "Search failed")
+        // FW-08: keep prior results/primary/related; error + toast only
+        store.lastError = String(obj.error || "Search failed")
+        store.showToast(store.lastError)
       }
-      store.dataChanged()
     } catch (e) {
       store.lastError = "search JSON parse failed"
-      store.dataChanged()
+      store.showToast(store.lastError)
     }
   }
 
@@ -384,7 +408,6 @@ QtObject {
     store.lastQuery = ""
     store.persistClear()
     store.showToast("Cleared")
-    store.dataChanged()
   }
 
   function loadDiskText(text) {
@@ -404,41 +427,6 @@ QtObject {
   function onCacheLoaded(text) {
     if (text && text.length > 2)
       store.loadDiskText(text)
-  }
-
-  function handleSummonPayload(obj) {
-    if (obj === undefined || obj === null || obj === "")
-      return false
-    if (typeof obj === "string") {
-      var raw = String(obj).trim()
-      if (!raw.length) return false
-      try { obj = JSON.parse(raw) } catch (e) {
-        // Treat bare string as query
-        store.queryInput = raw
-        Qt.callLater(function() { store.lookUp() })
-        return true
-      }
-    }
-    if (typeof obj !== "object") return false
-    var acted = false
-    if (obj.query || obj.q || obj.paste) {
-      store.queryInput = String(obj.query || obj.q || obj.paste)
-      acted = true
-    }
-    if (obj.limit !== undefined || obj.resultLimit !== undefined) {
-      store.resultLimit = store.clampLimit(obj.limit !== undefined ? obj.limit : obj.resultLimit)
-      acted = true
-    }
-    if (obj.clear === true || obj.clear === "true" || obj.clear === 1) {
-      store.clearResult()
-      acted = true
-    }
-    if (obj.lookup === true || obj.lookup === "true" || obj.lookup === 1
-        || obj.search === true || obj.search === "true" || obj.witness === true) {
-      Qt.callLater(function() { store.lookUp() })
-      acted = true
-    }
-    return acted
   }
 
   Component.onCompleted: {
@@ -462,19 +450,27 @@ QtObject {
   }
 
   Process {
-    id: ensureCacheDir
-    command: ["mkdir", "-p", store.cacheDir]
-    running: false
-  }
-
-  Process {
     id: copyProc
     running: false
+    onExited: function(exitCode, exitStatus) {
+      if (exitCode === 0)
+        store.showToast("Copied")
+      else if (exitCode === 127)
+        store.showToast("No clipboard tool")
+      else
+        store.showToast("Copy failed")
+    }
   }
 
   Process {
     id: openUrlProc
     running: false
+    onExited: function(exitCode, exitStatus) {
+      if (exitCode === 0)
+        store.showToast("Opened")
+      else
+        store.showToast("Open failed")
+    }
   }
 
   Process {

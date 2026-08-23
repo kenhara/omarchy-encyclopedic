@@ -4,7 +4,7 @@ import qs.Commons
 import qs.Ui
 
 // Nested details panel for Fair Witness (loaded by BarWidget — not a separate kind).
-// 0.1.1 — direct-match hero + related; LOOK UP + cards. No vendor chrome.
+// 0.1.2 — audit harden; LOOK UP + MATCH hero + cards. No vendor chrome.
 Panel {
   id: root
   moduleName: "harris.fair-witness"
@@ -33,19 +33,19 @@ Panel {
 
   readonly property var liveStore: store
 
+  // FW-19: focus query when panel opens (skip while a lookup is in flight)
+  onOpenedChanged: {
+    if (root.opened && !(liveStore && liveStore.loading))
+      Qt.callLater(function() { if (queryEdit) queryEdit.forceActiveFocus() })
+  }
+
+
   function switchPanel(direction) {
     if (root.bar && typeof root.bar.switchPanelFrom === "function")
       return root.bar.switchPanelFrom(root.barIdentity, direction)
     return false
   }
 
-  function handleSummonPayload(obj) {
-    if (!liveStore) return false
-    var acted = liveStore.handleSummonPayload(obj)
-    if (acted && !root.opened)
-      root.open()
-    return acted
-  }
 
   implicitWidth: Style.space(420)
   implicitHeight: Math.min(Style.space(720), contentCol.implicitHeight + Style.space(36))
@@ -83,7 +83,7 @@ Panel {
             text: "FAIR WITNESS"
             color: root.fwAccent
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(18)
+            font.pixelSize: Style.font.title
             font.bold: true
             font.letterSpacing: 3.2
           }
@@ -93,7 +93,17 @@ Panel {
             color: root.contentForeground
             opacity: 0.5
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(12)
+            font.pixelSize: Style.font.body
+            width: parent.width
+          }
+
+          Text {
+            visible: !!(liveStore && liveStore.lookedUpAt && String(liveStore.lookedUpAt).length)
+            text: liveStore ? ("looked up " + liveStore.lastUpdatedText) : ""
+            color: root.contentForeground
+            opacity: 0.35
+            font.family: root.contentFontFamily
+            font.pixelSize: Style.font.caption
             width: parent.width
           }
         }
@@ -119,7 +129,7 @@ Panel {
               anchors.margins: Style.space(10)
               color: root.contentForeground
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(13)
+              font.pixelSize: Style.font.subtitle
               wrapMode: TextEdit.Wrap
               selectByMouse: true
               text: liveStore ? liveStore.queryInput : ""
@@ -140,7 +150,7 @@ Panel {
                 color: root.contentForeground
                 opacity: 0.32
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(13)
+                font.pixelSize: Style.font.subtitle
                 wrapMode: Text.WordWrap
               }
             }
@@ -152,7 +162,9 @@ Panel {
           width: parent.width
           height: Style.space(48)
           radius: 10
-          color: root.fwAccent
+          color: lookupMa.containsMouse
+            ? Qt.lighter(root.fwAccent, 1.12)
+            : root.fwAccent
           opacity: liveStore && liveStore.loading ? 0.7 : 1.0
 
           Text {
@@ -160,13 +172,15 @@ Panel {
             text: liveStore && liveStore.loading ? "LOOKING UP…" : "LOOK UP"
             color: Qt.rgba(0.06, 0.08, 0.1, 1)
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(15)
+            font.pixelSize: Style.font.title
             font.bold: true
             font.letterSpacing: 2.4
           }
 
           MouseArea {
+            id: lookupMa
             anchors.fill: parent
+            hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             enabled: !(liveStore && liveStore.loading)
             onClicked: if (liveStore) liveStore.lookUp()
@@ -180,7 +194,7 @@ Panel {
           text: liveStore ? liveStore.lastError : ""
           color: Color.urgent
           font.family: root.contentFontFamily
-          font.pixelSize: Style.font.size(11)
+          font.pixelSize: Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
 
@@ -190,7 +204,7 @@ Panel {
           text: liveStore ? liveStore.toastText : ""
           color: root.fwAccent
           font.family: root.contentFontFamily
-          font.pixelSize: Style.font.size(11)
+          font.pixelSize: Style.font.bodySmall
         }
 
         // Hero + related (when direct title/slug match) OR flat results
@@ -224,7 +238,7 @@ Panel {
                   text: "MATCH"
                   color: root.fwAccent
                   font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.size(10)
+                  font.pixelSize: Style.font.caption
                   font.bold: true
                   font.letterSpacing: 1.8
                   anchors.verticalCenter: parent.verticalCenter
@@ -241,9 +255,10 @@ Panel {
                 text: liveStore && liveStore.primary
                   ? (liveStore.primary.title || liveStore.primary.slug || "Untitled")
                   : ""
+                textFormat: Text.PlainText
                 color: root.contentForeground
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(17)
+                font.pixelSize: Style.font.title
                 font.bold: true
                 wrapMode: Text.WordWrap
               }
@@ -253,10 +268,11 @@ Panel {
                 visible: !!(liveStore && liveStore.primary && liveStore.primary.snippet
                             && String(liveStore.primary.snippet).length)
                 text: liveStore && liveStore.primary ? (liveStore.primary.snippet || "") : ""
+                textFormat: Text.PlainText
                 color: root.contentForeground
                 opacity: 0.58
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(12)
+                font.pixelSize: Style.font.body
                 wrapMode: Text.WordWrap
                 maximumLineCount: liveStore && liveStore.heroExpanded ? 24 : 3
                 elide: Text.ElideRight
@@ -265,14 +281,16 @@ Panel {
               // Expand / collapse affordance
               Text {
                 text: liveStore && liveStore.heroExpanded ? "▾ Show less" : "▸ Show more"
-                color: root.fwAccent
+                color: showMoreMa.containsMouse ? Qt.lighter(root.fwAccent, 1.15) : root.fwAccent
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.size(11)
+                font.pixelSize: Style.font.bodySmall
                 font.bold: true
 
                 MouseArea {
+                  id: showMoreMa
                   anchors.fill: parent
                   anchors.margins: -Style.space(4)
+                  hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
                   onClicked: if (liveStore) liveStore.toggleHero()
                 }
@@ -287,7 +305,9 @@ Panel {
                   width: Style.space(56)
                   height: Style.space(26)
                   radius: 6
-                  color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.22)
+                  color: heroOpenMa.containsMouse
+                    ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.34)
+                    : Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.22)
                   border.width: 1
                   border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.5)
                   Text {
@@ -295,11 +315,13 @@ Panel {
                     text: "Open"
                     color: root.contentForeground
                     font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.size(10)
+                    font.pixelSize: Style.font.caption
                     font.bold: true
                   }
                   MouseArea {
+                    id: heroOpenMa
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: if (liveStore) liveStore.openPrimary()
                   }
@@ -309,7 +331,9 @@ Panel {
                   width: Style.space(72)
                   height: Style.space(26)
                   radius: 6
-                  color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                  color: heroCopyTitleMa.containsMouse
+                    ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+                    : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
                   border.width: 1
                   border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                   Text {
@@ -317,10 +341,12 @@ Panel {
                     text: "Copy title"
                     color: root.contentForeground
                     font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.size(10)
+                    font.pixelSize: Style.font.caption
                   }
                   MouseArea {
+                    id: heroCopyTitleMa
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: if (liveStore) liveStore.copyPrimaryTitle()
                   }
@@ -330,7 +356,9 @@ Panel {
                   width: Style.space(68)
                   height: Style.space(26)
                   radius: 6
-                  color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                  color: heroCopyLinkMa.containsMouse
+                    ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+                    : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
                   border.width: 1
                   border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                   Text {
@@ -338,10 +366,12 @@ Panel {
                     text: "Copy link"
                     color: root.contentForeground
                     font.family: root.contentFontFamily
-                    font.pixelSize: Style.font.size(10)
+                    font.pixelSize: Style.font.caption
                   }
                   MouseArea {
+                    id: heroCopyLinkMa
                     anchors.fill: parent
+                    hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: if (liveStore) liveStore.copyPrimaryLink()
                   }
@@ -365,7 +395,7 @@ Panel {
             color: root.contentForeground
             opacity: 0.45
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.size(10)
+            font.pixelSize: Style.font.caption
             font.bold: true
             font.letterSpacing: 1.8
           }
@@ -378,7 +408,9 @@ Panel {
               width: contentCol.width
               height: relatedInner.implicitHeight + Style.space(20)
               radius: 12
-              color: root.surfaceColor
+              color: relatedCardMa.containsMouse
+                ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.09)
+                : root.surfaceColor
               border.width: 1
               border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.1)
 
@@ -393,9 +425,10 @@ Panel {
                 Text {
                   width: parent.width
                   text: modelData.title || modelData.slug || "Untitled"
+                  textFormat: Text.PlainText
                   color: root.contentForeground
                   font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.size(14)
+                  font.pixelSize: Style.font.title
                   font.bold: true
                   wrapMode: Text.WordWrap
                 }
@@ -404,10 +437,11 @@ Panel {
                   width: parent.width
                   visible: !!(modelData.snippet && String(modelData.snippet).length)
                   text: modelData.snippet || ""
+                  textFormat: Text.PlainText
                   color: root.contentForeground
                   opacity: 0.55
                   font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.size(11)
+                  font.pixelSize: Style.font.bodySmall
                   wrapMode: Text.WordWrap
                   maximumLineCount: 4
                   elide: Text.ElideRight
@@ -420,7 +454,9 @@ Panel {
                     width: Style.space(56)
                     height: Style.space(26)
                     radius: 6
-                    color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.18)
+                    color: relatedOpenMa.containsMouse
+                      ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.30)
+                      : Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.18)
                     border.width: 1
                     border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.4)
                     Text {
@@ -428,15 +464,17 @@ Panel {
                       text: "Open"
                       color: root.contentForeground
                       font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.size(10)
+                      font.pixelSize: Style.font.caption
                       font.bold: true
                     }
                     MouseArea {
+                      id: relatedOpenMa
                       anchors.fill: parent
+                      hoverEnabled: true
                       cursorShape: Qt.PointingHandCursor
                       onClicked: {
                         if (!liveStore) return
-                        liveStore.openUrlExternal(modelData.url || "")
+                        liveStore.openUrlExternal(modelData.url || "", modelData.slug || "")
                       }
                     }
                   }
@@ -445,7 +483,9 @@ Panel {
                     width: Style.space(72)
                     height: Style.space(26)
                     radius: 6
-                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                    color: relatedCopyTitleMa.containsMouse
+                      ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+                      : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
                     border.width: 1
                     border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                     Text {
@@ -453,10 +493,12 @@ Panel {
                       text: "Copy title"
                       color: root.contentForeground
                       font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.size(10)
+                      font.pixelSize: Style.font.caption
                     }
                     MouseArea {
+                      id: relatedCopyTitleMa
                       anchors.fill: parent
+                      hoverEnabled: true
                       cursorShape: Qt.PointingHandCursor
                       onClicked: if (liveStore) liveStore.copyText(modelData.title || "")
                     }
@@ -466,7 +508,9 @@ Panel {
                     width: Style.space(68)
                     height: Style.space(26)
                     radius: 6
-                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                    color: relatedCopyLinkMa.containsMouse
+                      ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+                      : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
                     border.width: 1
                     border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                     Text {
@@ -474,15 +518,25 @@ Panel {
                       text: "Copy link"
                       color: root.contentForeground
                       font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.size(10)
+                      font.pixelSize: Style.font.caption
                     }
                     MouseArea {
+                      id: relatedCopyLinkMa
                       anchors.fill: parent
+                      hoverEnabled: true
                       cursorShape: Qt.PointingHandCursor
                       onClicked: if (liveStore) liveStore.copyText(modelData.url || "")
                     }
                   }
                 }
+              }
+
+              MouseArea {
+                id: relatedCardMa
+                anchors.fill: parent
+                z: -1
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
               }
             }
           }
@@ -502,7 +556,9 @@ Panel {
               width: contentCol.width
               height: cardInner.implicitHeight + Style.space(20)
               radius: 12
-              color: root.surfaceColor
+              color: flatCardMa.containsMouse
+                ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.09)
+                : root.surfaceColor
               border.width: 1
               border.color: {
                 var sel = liveStore && liveStore.selectedIndex === index
@@ -522,9 +578,10 @@ Panel {
                 Text {
                   width: parent.width
                   text: modelData.title || modelData.slug || "Untitled"
+                  textFormat: Text.PlainText
                   color: root.contentForeground
                   font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.size(14)
+                  font.pixelSize: Style.font.title
                   font.bold: true
                   wrapMode: Text.WordWrap
                 }
@@ -533,10 +590,11 @@ Panel {
                   width: parent.width
                   visible: !!(modelData.snippet && String(modelData.snippet).length)
                   text: modelData.snippet || ""
+                  textFormat: Text.PlainText
                   color: root.contentForeground
                   opacity: 0.55
                   font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.size(11)
+                  font.pixelSize: Style.font.bodySmall
                   wrapMode: Text.WordWrap
                   maximumLineCount: 4
                   elide: Text.ElideRight
@@ -549,7 +607,9 @@ Panel {
                     width: Style.space(56)
                     height: Style.space(26)
                     radius: 6
-                    color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.18)
+                    color: flatOpenMa.containsMouse
+                      ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.30)
+                      : Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.18)
                     border.width: 1
                     border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.4)
                     Text {
@@ -557,11 +617,13 @@ Panel {
                       text: "Open"
                       color: root.contentForeground
                       font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.size(10)
+                      font.pixelSize: Style.font.caption
                       font.bold: true
                     }
                     MouseArea {
+                      id: flatOpenMa
                       anchors.fill: parent
+                      hoverEnabled: true
                       cursorShape: Qt.PointingHandCursor
                       onClicked: if (liveStore) liveStore.openResult(index)
                     }
@@ -571,7 +633,9 @@ Panel {
                     width: Style.space(72)
                     height: Style.space(26)
                     radius: 6
-                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                    color: flatCopyTitleMa.containsMouse
+                      ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+                      : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
                     border.width: 1
                     border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                     Text {
@@ -579,10 +643,12 @@ Panel {
                       text: "Copy title"
                       color: root.contentForeground
                       font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.size(10)
+                      font.pixelSize: Style.font.caption
                     }
                     MouseArea {
+                      id: flatCopyTitleMa
                       anchors.fill: parent
+                      hoverEnabled: true
                       cursorShape: Qt.PointingHandCursor
                       onClicked: if (liveStore) liveStore.copyTitle(index)
                     }
@@ -592,7 +658,9 @@ Panel {
                     width: Style.space(68)
                     height: Style.space(26)
                     radius: 6
-                    color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
+                    color: flatCopyLinkMa.containsMouse
+                      ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+                      : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
                     border.width: 1
                     border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
                     Text {
@@ -600,10 +668,12 @@ Panel {
                       text: "Copy link"
                       color: root.contentForeground
                       font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.size(10)
+                      font.pixelSize: Style.font.caption
                     }
                     MouseArea {
+                      id: flatCopyLinkMa
                       anchors.fill: parent
+                      hoverEnabled: true
                       cursorShape: Qt.PointingHandCursor
                       onClicked: if (liveStore) liveStore.copyLink(index)
                     }
@@ -612,8 +682,10 @@ Panel {
               }
 
               MouseArea {
+                id: flatCardMa
                 anchors.fill: parent
                 z: -1
+                hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                   if (!liveStore) return
@@ -650,7 +722,7 @@ Panel {
               text: "WITNESS"
               color: root.fwAccent
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(10)
+              font.pixelSize: Style.font.caption
               font.bold: true
               font.letterSpacing: 1.6
             }
@@ -660,9 +732,10 @@ Panel {
               text: liveStore && liveStore.selectedResult
                 ? (liveStore.selectedResult.title || "")
                 : ""
+              textFormat: Text.PlainText
               color: root.contentForeground
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(13)
+              font.pixelSize: Style.font.subtitle
               font.bold: true
               wrapMode: Text.WordWrap
             }
@@ -672,10 +745,11 @@ Panel {
               text: liveStore && liveStore.selectedResult
                 ? (liveStore.selectedResult.snippet || "(no snippet)")
                 : ""
+              textFormat: Text.PlainText
               color: root.contentForeground
               opacity: 0.6
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.size(11)
+              font.pixelSize: Style.font.bodySmall
               wrapMode: Text.WordWrap
             }
           }
@@ -690,7 +764,7 @@ Panel {
           color: root.contentForeground
           opacity: 0.5
           font.family: root.contentFontFamily
-          font.pixelSize: Style.font.size(11)
+          font.pixelSize: Style.font.bodySmall
           wrapMode: Text.WordWrap
         }
 
@@ -701,7 +775,7 @@ Panel {
           color: root.contentForeground
           opacity: 0.22
           font.family: root.contentFontFamily
-          font.pixelSize: Style.font.size(10)
+          font.pixelSize: Style.font.caption
           wrapMode: Text.WordWrap
         }
       }

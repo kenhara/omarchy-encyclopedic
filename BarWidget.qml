@@ -3,8 +3,7 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 
-// Fair Witness bar entry — Yellow Pixels / Space Jockey pattern:
-// BarWidget loads nested Panel.qml via Loader. kinds: ["bar-widget"] only.
+// Fair Witness bar entry — nested Panel.qml via Loader. kinds: ["bar-widget"] only.
 BarWidget {
   id: root
   moduleName: "harris.fair-witness"
@@ -35,13 +34,7 @@ BarWidget {
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
-  function handleSummonPayload(obj) {
-    return witnessStore.handleSummonPayload(obj)
-  }
-
-  function open(payloadJson) {
-    if (payloadJson !== undefined && payloadJson !== null && String(payloadJson).length)
-      root.handleSummonPayload(payloadJson)
+  function open() {
     if (panelLoader.item) panelLoader.item.open()
   }
 
@@ -57,8 +50,8 @@ BarWidget {
     if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
   }
 
-  function onBarMiddleClick() {
-    // Useful middle-click: clear last search (+ cache) with toast.
+  // FW-13: local name — middle-click clears last search (+ cache)
+  function clearLastSearch() {
     witnessStore.clearResult()
   }
 
@@ -120,7 +113,7 @@ BarWidget {
     }
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.LeftButton) root.toggle()
-      else if (buttonCode === Qt.MiddleButton) root.onBarMiddleClick()
+      else if (buttonCode === Qt.MiddleButton) root.clearLastSearch()
     }
   }
 }
