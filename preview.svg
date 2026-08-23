@@ -58,5 +58,5 @@
   <text x="64" y="340" fill="#f0f0fa" font-size="42" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700" opacity="0.9">Fair</text>
   <text x="64" y="392" fill="#6ec8e8" font-size="42" font-family="ui-sans-serif, system-ui, sans-serif" font-weight="700">Witness</text>
   <text x="64" y="436" fill="#f0f0fa" font-size="16" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.5">look it up · report what it says</text>
-  <text x="64" y="470" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.35">v0.1.1 · unofficial · Heinlein</text>
+  <text x="64" y="470" fill="#f0f0fa" font-size="13" font-family="ui-sans-serif, system-ui, sans-serif" opacity="0.35">v0.1.3 · unofficial · Heinlein</text>
 </svg>

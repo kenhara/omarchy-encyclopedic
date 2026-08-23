@@ -9,7 +9,6 @@ QtObject {
   id: store
 
   property int resultLimit: 8
-  property bool panelOpen: false
 
   property string queryInput: ""
   property bool loading: false

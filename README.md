@@ -1,5 +1,7 @@
 # Fair Witness
 
+![Fair Witness](preview.png)
+
 Look it up. Report what it says. Unofficial.
 
 Public Grokipedia full-text search for Omarchy — one field, **LOOK UP**, result
@@ -9,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `harris.fair-witness`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.2
+**Version:** 0.1.3
+
+### 0.1.3
+- Pre-ship checklist (`PRE-SHIP.md`): README hero `preview.png`, `"monospace"` font fallback, drop unused `panelOpen`, version sync.
 
 ### 0.1.2
 - Audit harden (see `AUDIT.md` / `AUDIT-NOTES.md`): unescape-before-strip HTML,
@@ -111,6 +116,7 @@ python3 scripts/search.py --dry-run --query 'mars'
 | Input | Action |
 |-------|--------|
 | Left-click bar | Toggle panel |
+| Right-click bar | (host / none) |
 | Middle-click bar | Clear last search (+ cache); toast "Cleared" |
 | Search field | One paste/type; Enter triggers LOOK UP |
 | LOOK UP | `scripts/search.py` → result cards |
@@ -157,7 +163,7 @@ Empty query and `--dry-run` emit structured error JSON (non-zero exit).
 ## Layout
 
 ```
-manifest.json          # harris.fair-witness @ 0.1.2
+manifest.json          # harris.fair-witness @ 0.1.3
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # search + LOOK UP + result cards
 WitnessStore.qml       # queryInput, lookUp, cache, Process → search.py
@@ -183,7 +189,7 @@ README.md
 
 ## Preview
 
-Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.2)
+Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.3)
 with sample Mars as MATCH hero + RELATED. Marketplace card: `preview.png`.
 
 ## License

@@ -1,6 +1,6 @@
 # Fair Witness — design notes
 
-**Status:** 0.1.2 (audit harden — PlainText, clipboard, URL allow-list)  
+**Status:** 0.1.3 (pre-ship — PlainText, clipboard, URL allow-list, README hero)  
 **Id:** `harris.fair-witness`
 
 ## Why
@@ -30,7 +30,7 @@ Grokipedia full-text search. No API keys. No vendor chrome.
 `● FW` — left click toggles panel. Tooltip: *Fair Witness — look it up ·
 middle: clear*. Middle click clears last search / cache.
 
-## Panel (0.1.2)
+## Panel
 
 1. Big **FAIR WITNESS** + *look it up · report what it says* (+ looked-up age)
 2. One search / paste field (focused on open)

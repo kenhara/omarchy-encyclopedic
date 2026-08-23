@@ -16,7 +16,7 @@ BarWidget {
     : false
 
   readonly property color foreground: root.bar ? root.bar.foreground : Color.foreground
-  readonly property string fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
+  readonly property string fontFamily: root.bar ? root.bar.fontFamily : "monospace"
 
   // Cool ice accent — clinical Fair Witness observer vibe
   readonly property color fwAccent: Qt.rgba(0.43, 0.78, 0.91, 1.0)
@@ -69,7 +69,6 @@ BarWidget {
     witnessStore.applySettings({
       resultLimit: root.resultLimit
     })
-    witnessStore.panelOpen = root.opened
   }
 
   onBarChanged: injectPanel()
@@ -77,7 +76,6 @@ BarWidget {
     injectPanel()
     syncStoreSettings()
   }
-  onOpenedChanged: witnessStore.panelOpen = root.opened
   onResultLimitChanged: syncStoreSettings()
 
   WitnessStore {
