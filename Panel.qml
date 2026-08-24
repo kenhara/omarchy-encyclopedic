@@ -91,13 +91,24 @@ Panel {
             width: parent.width
             spacing: Style.space(6)
 
-            Text {
-              text: "ENCYCLOPEDIC"
-              color: root.fwAccent
-              font.family: root.contentFontFamily
-              font.pixelSize: Style.font.body
-              font.bold: true
-              font.letterSpacing: 3.2
+            Row {
+              spacing: Style.space(8)
+              Text {
+                text: "\uf002"
+                color: root.fwAccent
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.body
+                anchors.verticalCenter: parent.verticalCenter
+              }
+              Text {
+                text: "ENCYCLOPEDIC"
+                color: root.fwAccent
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.body
+                font.bold: true
+                font.letterSpacing: 3.2
+                anchors.verticalCenter: parent.verticalCenter
+              }
             }
 
             Text {

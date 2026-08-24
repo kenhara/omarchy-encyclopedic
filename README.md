@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.16
+**Version:** 0.1.17
+
+### 0.1.17
+- Header: FA magnifying glass (`\uf002`) left of ENCYCLOPEDIC (same as bar chip).
 
 ### 0.1.16
 - **Preview** fetches the full Grokipedia article (`/api/page-preview`) and shows it in the panel — not a no-op snippet line-count bump.
