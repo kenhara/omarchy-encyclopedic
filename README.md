@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.20
+**Version:** 0.1.21
+
+### 0.1.21: reject symlink/FIFO on cache open (#2218)
+- Open cache with `O_NOFOLLOW | O_NONBLOCK` and require a regular file so a symlink or FIFO at the predictable path cannot redirect or hang the helper.
 
 ### 0.1.20: bound HTTP / helper stdout / cache (#2218)
 - Cap HTTP (5 MiB), cache (2 MiB), helper stdout (1 MiB), QML buffers (2 MiB); reject-on-exceed. Cache reads via `--load-cache`; FileView writes only.

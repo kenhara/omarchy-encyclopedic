@@ -11,7 +11,9 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
+import stat
 import sys
 import time
 import urllib.error
@@ -497,12 +499,36 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def load_cache(path: str) -> None:
-    """Bounded cache read. Oversize rejects; decode/JSON errors are a no-op."""
+    """Bounded, trust-path cache read.
+
+    Opens O_NOFOLLOW | O_NONBLOCK and requires a regular file, so a symlink or
+    FIFO planted at the predictable cache path can neither redirect the read nor
+    block the helper before the 2 MiB cap applies. Oversize rejects;
+    decode/JSON errors clear.
+    """
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    data = b""
+    fd = -1
     try:
-        with open(path, "rb") as f:
-            data = f.read(MAX_CACHE_BYTES + 1)
+        fd = os.open(path, flags)
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode):
+            emit({"cleared": True})
+        remaining = MAX_CACHE_BYTES + 1
+        while remaining > 0:
+            chunk = os.read(fd, min(65536, remaining))
+            if not chunk:
+                break
+            data += chunk
+            remaining -= len(chunk)
     except Exception:
         emit({"cleared": True})
+    finally:
+        if fd >= 0:
+            try:
+                os.close(fd)
+            except Exception:
+                pass
     if len(data) > MAX_CACHE_BYTES:
         emit({"ok": False, "error": "cache too large"}, exit_code=1)
     try:

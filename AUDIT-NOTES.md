@@ -54,3 +54,9 @@ rg -n 'Style\.font\.size\(|Quickshell\.clipboard[^T]|bash -lc' .
 | **HC-03** | `WitnessStore` SplitParser accumulates with no ceiling | `maxHelperOutput` 2 MiB; per-stream overflow flags; kill producer; toast `response too large`; no JSON.parse. |
 | **HC-04** | FileView loads user-writable cache wholesale | `--load-cache` helper read capped at `MAX_CACHE_BYTES` (2 MiB); FileView writes only (`preload: false`). |
 
+
+## 0.1.21 (marketplace #2218 follow-up)
+
+| ID | Finding | Fix |
+|----|---------|-----|
+| **HC-05** | `load_cache()` still opened the replaceable cache with blocking `open(path, "rb")` — follows a symlink and can hang on a FIFO before the 2 MiB cap | Open `O_NOFOLLOW | O_NONBLOCK`; require `S_ISREG`; symlink/FIFO/non-regular emit `{cleared: true}` so the helper neither redirects nor blocks. Oversize still rejects. |
