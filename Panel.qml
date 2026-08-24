@@ -83,7 +83,7 @@ Panel {
             text: "ENCYCLOPEDIC"
             color: root.fwAccent
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.title
+            font.pixelSize: Style.font.body
             font.bold: true
             font.letterSpacing: 3.2
           }
@@ -129,7 +129,7 @@ Panel {
               anchors.margins: Style.space(10)
               color: root.contentForeground
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.subtitle
+              font.pixelSize: Style.font.body
               wrapMode: TextEdit.Wrap
               selectByMouse: true
               text: liveStore ? liveStore.queryInput : ""
@@ -150,7 +150,7 @@ Panel {
                 color: root.contentForeground
                 opacity: 0.32
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.subtitle
+                font.pixelSize: Style.font.body
                 wrapMode: Text.WordWrap
               }
             }
@@ -172,7 +172,7 @@ Panel {
             text: liveStore && liveStore.loading ? "LOOKING UP…" : "LOOK UP"
             color: Qt.rgba(0.06, 0.08, 0.1, 1)
             font.family: root.contentFontFamily
-            font.pixelSize: Style.font.title
+            font.pixelSize: Style.font.body
             font.bold: true
             font.letterSpacing: 2.4
           }
@@ -258,7 +258,7 @@ Panel {
                 textFormat: Text.PlainText
                 color: root.contentForeground
                 font.family: root.contentFontFamily
-                font.pixelSize: Style.font.title
+                font.pixelSize: Style.font.body
                 font.bold: true
                 wrapMode: Text.WordWrap
               }
@@ -428,7 +428,7 @@ Panel {
                   textFormat: Text.PlainText
                   color: root.contentForeground
                   font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.title
+                  font.pixelSize: Style.font.body
                   font.bold: true
                   wrapMode: Text.WordWrap
                 }
@@ -581,7 +581,7 @@ Panel {
                   textFormat: Text.PlainText
                   color: root.contentForeground
                   font.family: root.contentFontFamily
-                  font.pixelSize: Style.font.title
+                  font.pixelSize: Style.font.body
                   font.bold: true
                   wrapMode: Text.WordWrap
                 }
@@ -735,7 +735,7 @@ Panel {
               textFormat: Text.PlainText
               color: root.contentForeground
               font.family: root.contentFontFamily
-              font.pixelSize: Style.font.subtitle
+              font.pixelSize: Style.font.body
               font.bold: true
               wrapMode: Text.WordWrap
             }
