@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "harris.fair-witness",
-  "name": "Fair Witness",
-  "version": "0.1.4",
+  "id": "harris.encyclopedic",
+  "name": "Encyclopedic",
+  "version": "0.1.5",
   "author": "Harris Kenny",
   "license": "MIT",
   "description": "Look it up. Report what it says. Unofficial Grokipedia / xAI encyclopedia client; not affiliated.",
@@ -13,7 +13,7 @@
     "barWidget": "BarWidget.qml"
   },
   "keywords": [
-    "fair witness",
+    "encyclopedic",
     "grokipedia",
     "grok",
     "grok encyclopedia",
@@ -33,10 +33,11 @@
     "ai encyclopedia",
     "witness",
     "fw",
-    "look it up"
+    "look it up",
+    "fair witness"
   ],
   "barWidget": {
-    "displayName": "Fair Witness",
+    "displayName": "Encyclopedic",
     "description": "Look it up. Report what it says. Public Grokipedia full-text search. Unofficial; not affiliated with xAI or Grokipedia.",
     "category": "Productivity",
     "allowMultiple": false,
@@ -57,7 +58,7 @@
       }
     ],
     "aliases": [
-      "fair witness",
+      "encyclopedic",
       "grokipedia",
       "grok",
       "grok encyclopedia",
@@ -71,7 +72,8 @@
       "knowledge base",
       "full text search",
       "fw",
-      "look it up"
+      "look it up",
+      "fair witness"
     ]
   }
 }

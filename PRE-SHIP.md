@@ -1,11 +1,11 @@
-# Fair Witness — Quattro pre-ship checklist (0.1.4)
+# Encyclopedic — Quattro pre-ship checklist (0.1.5)
 
-## PRE-SHIP note — discoverability (0.1.4)
+## PRE-SHIP note — discoverability (0.1.5)
 
 Patch bump for marketplace discoverability before UTM smoke: expanded `keywords` + restored `barWidget.aliases` (Grokipedia/Grok/Wikipedia/Heinlein/xAI…); README Discoverability (aliases for discovery docs — loader may not index). Category stays **Productivity**. No QML/search change.
 
 
-Omarchy Quattro pre-ship pass for `harris.fair-witness`. Builds on the 0.1.2
+Omarchy Quattro pre-ship pass for `harris.encyclopedic`. Builds on the 0.1.2
 audit map (`AUDIT.md` / `AUDIT-NOTES.md`).
 
 ## Checklist
@@ -27,7 +27,7 @@ audit map (`AUDIT.md` / `AUDIT-NOTES.md`).
 | 13 | Unescape-before-strip HTML | **pass** — `scripts/search.py` `strip_simple_html` |
 | 14 | https URL allow-list | **pass** — `sanitizeOpenUrl` + `sanitize_https_url` |
 | 15 | Keep results on failed lookup | **pass** — `ok:false` toasts only; prior primary/related kept |
-| 16 | Version sync | **pass** — **0.1.4** manifest / README / DESIGN / Panel / preview / UA fallback |
+| 16 | Version sync | **pass** — **0.1.5** manifest / README / DESIGN / Panel / preview / UA fallback |
 | 17 | Integer schema min/max/step | **pass** — `resultLimit` 1–20 step 1 |
 | 18 | No invented summon APIs | **pass** — no `handleSummonPayload`; middle-click → `clearLastSearch` |
 | 19 | Hover on actionable | **pass** — LOOK UP, pills, show-more, cards |
@@ -44,7 +44,7 @@ audit map (`AUDIT.md` / `AUDIT-NOTES.md`).
 
 ## Changed in 0.1.3
 
-- README hero `![Fair Witness](preview.png)`; Controls row for right-click
+- README hero `![Encyclopedic](preview.png)`; Controls row for right-click
 - `"monospace"` font fallback (drop `Style.font.family`)
 - Drop unused `panelOpen`
 - Version sync to **0.1.3** (incl. `preview.svg` was still on 0.1.1)

@@ -3,10 +3,10 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 
-// Fair Witness bar entry — nested Panel.qml via Loader. kinds: ["bar-widget"] only.
+// Encyclopedic bar entry — nested Panel.qml via Loader. kinds: ["bar-widget"] only.
 BarWidget {
   id: root
-  moduleName: "harris.fair-witness"
+  moduleName: "harris.encyclopedic"
 
   readonly property bool opened: panelLoader.item
     ? panelLoader.item.opened === true
@@ -18,7 +18,7 @@ BarWidget {
   readonly property color foreground: root.bar ? root.bar.foreground : Color.foreground
   readonly property string fontFamily: root.bar ? root.bar.fontFamily : "monospace"
 
-  // Cool ice accent — clinical Fair Witness observer vibe
+  // Cool ice accent — clinical Encyclopedic observer vibe
   readonly property color fwAccent: Qt.rgba(0.43, 0.78, 0.91, 1.0)
 
   property int resultLimit: {
@@ -104,9 +104,9 @@ BarWidget {
     text: witnessStore.barLabel || "● FW"
     horizontalMargin: 8.5
     tooltipText: {
-      var tip = "Fair Witness — look it up · middle: clear"
+      var tip = "Encyclopedic — look it up · middle: clear"
       if (witnessStore.loading)
-        tip = "Fair Witness — looking up… · middle: clear"
+        tip = "Encyclopedic — looking up… · middle: clear"
       return tip
     }
     onPressed: function(buttonCode) {

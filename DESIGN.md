@@ -1,11 +1,11 @@
-# Fair Witness — design notes
+# Encyclopedic — design notes
 
-**Status:** 0.1.4 (discoverability — keywords + aliases)  
-**Id:** `harris.fair-witness`
+**Status:** 0.1.5 (discoverability — keywords + aliases)  
+**Id:** `harris.encyclopedic`
 
 ## Why
 
-Named for Heinlein’s *Stranger in a Strange Land* Fair Witness: look it up,
+Named for Heinlein’s *Stranger in a Strange Land* Encyclopedic: look it up,
 report what it says — no spin. Personal unofficial client for public
 Grokipedia full-text search. No API keys. No vendor chrome.
 
@@ -18,7 +18,7 @@ Grokipedia full-text search. No API keys. No vendor chrome.
 | Schema knobs early | `resultLimit` integer 1–20 default 8 |
 | Honest empty/error | Toast on miss; keep prior results on fail |
 | Ship extras | `preview.png`, Remove / Security / Network |
-| Cache last success | `~/.cache/fair-witness/last.json` |
+| Cache last success | `~/.cache/encyclopedic/last.json` |
 | Middle-click useful | Clear last search + toast "Cleared" |
 | MIT + manifest at root | Marketplace layout |
 | Unofficial disclaimer | Not affiliated with xAI / Grokipedia |
@@ -27,7 +27,7 @@ Grokipedia full-text search. No API keys. No vendor chrome.
 
 ## Bar
 
-`● FW` — left click toggles panel. Tooltip: *Fair Witness — look it up ·
+`● FW` — left click toggles panel. Tooltip: *Encyclopedic — look it up ·
 middle: clear*. Middle click clears last search / cache.
 
 ## Panel
@@ -40,7 +40,7 @@ middle: clear*. Middle click clears last search / cache.
    snippet + Open / Copy title / Copy link), then **RELATED** cards
 5. **No direct match:** flat result cards + optional **WITNESS** summary
    for selected card — no fake hero
-6. Quiet footer: unofficial · not affiliated with xAI / Grokipedia · Fair Witness is Heinlein
+6. Quiet footer: unofficial · not affiliated with xAI / Grokipedia · Encyclopedic is Heinlein
 
 ## Data
 

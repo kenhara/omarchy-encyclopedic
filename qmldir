@@ -1,3 +1,3 @@
-# Fair Witness — local module types.
+# Encyclopedic — local module types.
 # Prefer instantiating WitnessStore from BarWidget and injecting into Panel.
 WitnessStore 1.0 WitnessStore.qml

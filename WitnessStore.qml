@@ -2,9 +2,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Fair Witness — runs scripts/search.py via Process; parses JSON stdout.
+// Encyclopedic — runs scripts/search.py via Process; parses JSON stdout.
 // Public Grokipedia search only. No API keys.
-// Caches last successful search to ~/.cache/fair-witness/last.json
+// Caches last successful search to ~/.cache/encyclopedic/last.json
 QtObject {
   id: store
 
@@ -25,7 +25,7 @@ QtObject {
   property string lastQuery: ""
   property var lastPayload: null    // full JSON from search.py
 
-  readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/fair-witness"
+  readonly property string cacheDir: Quickshell.env("HOME") + "/.cache/encyclopedic"
   readonly property string cachePath: cacheDir + "/last.json"
   // FW-20: percent-decode so paths with spaces work for python3
   readonly property string pluginDir: {

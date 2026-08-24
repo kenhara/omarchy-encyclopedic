@@ -1,4 +1,4 @@
-# Fair Witness 0.1.2 — audit fix map
+# Encyclopedic 0.1.2 — audit fix map
 
 Mapping of `AUDIT.md` findings → fixes shipped in **0.1.2**.
 

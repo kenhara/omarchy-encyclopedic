@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Fair Witness — public Grokipedia full-text search (no auth).
+"""Encyclopedic — public Grokipedia full-text search (no auth).
 
 CLI for Omarchy bar-widget.
-User-Agent version is read from manifest.json (fallback 0.1.4).
+User-Agent version is read from manifest.json (fallback 0.1.5).
 
 Unofficial. Not affiliated with xAI / Grokipedia.
 """
@@ -21,7 +21,7 @@ from typing import Any
 
 SEARCH_URL = "https://grokipedia.com/api/full-text-search"
 PAGE_BASE = "https://grokipedia.com/page"
-PLUGIN_ID = "harris.fair-witness"
+PLUGIN_ID = "harris.encyclopedic"
 
 
 def read_manifest_version() -> str:
@@ -33,11 +33,11 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.1.4"
+    return "0.1.5"
 
 
 VERSION = read_manifest_version()
-USER_AGENT = f"FairWitness/{VERSION} (Omarchy unofficial; {PLUGIN_ID})"
+USER_AGENT = f"Encyclopedic/{VERSION} (Omarchy unofficial; {PLUGIN_ID})"
 
 
 def emit(obj: dict[str, Any], exit_code: int = 0) -> None:
@@ -249,7 +249,7 @@ def search(query: str, limit: int) -> dict[str, Any]:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="search.py",
-        description="Fair Witness — Grokipedia public full-text search (unofficial)",
+        description="Encyclopedic — Grokipedia public full-text search (unofficial)",
     )
     p.add_argument("--query", "-q", default="", help="Search query")
     p.add_argument("--limit", "-n", type=int, default=8, help="Max results (1–20)")

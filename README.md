@@ -1,19 +1,19 @@
-# Fair Witness
+# Encyclopedic
 
-![Fair Witness](preview.png)
+![Encyclopedic](preview.png)
 
 Look it up. Report what it says. Unofficial.
 
 Public Grokipedia full-text search for Omarchy — one field, **LOOK UP**, result
-cards. Named for Heinlein’s Fair Witness (*Stranger in a Strange Land*). No API
+cards. Named for Heinlein’s Encyclopedic (*Stranger in a Strange Land*). No API
 keys. No vendor chrome.
 
-**ID:** `harris.fair-witness`  
+**ID:** `harris.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.4
+**Version:** 0.1.5
 
-### 0.1.4
+### 0.1.5
 - Discoverability: expanded `keywords` + restored `barWidget.aliases` for search docs; honest note (loader may not index aliases).
 
 ### 0.1.3
@@ -40,13 +40,13 @@ keys. No vendor chrome.
 
 ## Repository
 
-**GitHub:** https://github.com/kenhara/omarchy-fair-witness  
-Local folder: **`omarchy-fair-witness`**.
+**GitHub:** https://github.com/kenhara/omarchy-encyclopedic  
+Local folder: **`omarchy-encyclopedic`**.
 
 ## Unofficial disclaimer
 
-**Fair Witness is unofficial.** It is **not** affiliated with, endorsed by, or
-sponsored by xAI, Grokipedia, or any related entity. “Fair Witness” is a
+**Encyclopedic is unofficial.** It is **not** affiliated with, endorsed by, or
+sponsored by xAI, Grokipedia, or any related entity. “Encyclopedic” is a
 literary reference to Robert A. Heinlein’s *Stranger in a Strange Land*. This
 plugin is a thin personal client that calls a **public read** HTTP search API.
 See **Discoverability** below — keywords may help marketplace/search; the
@@ -59,15 +59,15 @@ Marketplace filing: **Productivity** · tags `bar, quickshell`.
 Top-level `keywords` in `manifest.json` may help marketplace/search
 (Grokipedia, Grok, Wikipedia, Heinlein, xAI, encyclopedia, etc.).
 `barWidget.aliases` are for discovery docs and human search — the bar loader
-may not index them. Display name stays **Fair Witness** (no Grok in the title).
+may not index them. Display name stays **Encyclopedic** (no Grok in the title).
 
 ## Install
 
 ### From GitHub
 
 ```sh
-omarchy plugin add https://github.com/kenhara/omarchy-fair-witness.git --enable
-omarchy bar move harris.fair-witness --section right
+omarchy plugin add https://github.com/kenhara/omarchy-encyclopedic.git --enable
+omarchy bar move harris.encyclopedic --section right
 ```
 
 ### Local copy (this tree)
@@ -77,12 +77,12 @@ machine:
 
 ```sh
 mkdir -p ~/.config/omarchy/plugins
-cp -a . ~/.config/omarchy/plugins/harris.fair-witness
+cp -a . ~/.config/omarchy/plugins/harris.encyclopedic
 
-omarchy plugin validate ~/.config/omarchy/plugins/harris.fair-witness
+omarchy plugin validate ~/.config/omarchy/plugins/harris.encyclopedic
 omarchy-shell shell rescanPlugins
 
-omarchy bar move harris.fair-witness --section right
+omarchy bar move harris.encyclopedic --section right
 ```
 
 Hot reload applies on save under `~/.config/omarchy/plugins/`.
@@ -91,13 +91,13 @@ Hot reload applies on save under `~/.config/omarchy/plugins/`.
 
 ```sh
 mkdir -p ~/.config/omarchy/plugins
-ln -sfn /path/to/omarchy-fair-witness ~/.config/omarchy/plugins/harris.fair-witness
+ln -sfn /path/to/omarchy-encyclopedic ~/.config/omarchy/plugins/harris.encyclopedic
 omarchy-shell shell rescanPlugins
 ```
 
 ## Configure
 
-Open **widget settings** for Fair Witness (optional):
+Open **widget settings** for Encyclopedic (optional):
 
 | Schema key | Label | Default |
 |------------|-------|---------|
@@ -140,13 +140,13 @@ python3 scripts/search.py --dry-run --query 'mars'
 ## Remove
 
 ```sh
-omarchy plugin remove harris.fair-witness
+omarchy plugin remove harris.encyclopedic
 ```
 
 Optional cache cleanup:
 
 ```sh
-rm -rf ~/.cache/fair-witness
+rm -rf ~/.cache/encyclopedic
 ```
 
 ## Network
@@ -155,10 +155,10 @@ rm -rf ~/.cache/fair-witness
 - Article pages: `https://grokipedia.com/page/{slug}`
 
 Outbound HTTPS only when you click **LOOK UP** (or open a result). No auth.
-User-Agent: `FairWitness/<manifest version> (Omarchy unofficial; harris.fair-witness)`
+User-Agent: `Encyclopedic/<manifest version> (Omarchy unofficial; harris.encyclopedic)`
 (version read from `manifest.json`). One HTTPS GET per LOOK UP.
 
-Cache (last **successful** search): `~/.cache/fair-witness/last.json`.
+Cache (last **successful** search): `~/.cache/encyclopedic/last.json`.
 
 ## Scripts
 
@@ -175,7 +175,7 @@ Empty query and `--dry-run` emit structured error JSON (non-zero exit).
 ## Layout
 
 ```
-manifest.json          # harris.fair-witness @ 0.1.3
+manifest.json          # harris.encyclopedic @ 0.1.3
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # search + LOOK UP + result cards
 WitnessStore.qml       # queryInput, lookUp, cache, Process → search.py
@@ -197,11 +197,11 @@ README.md
 - Outbound HTTPS only on explicit LOOK UP / Open. No auto-fire on panel open
   or middle-click.
 - MIT at repo root. Unofficial — not affiliated with xAI or Grokipedia.
-  Fair Witness is Heinlein.
+  Encyclopedic is Heinlein.
 
 ## Preview
 
-Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.4)
+Open `docs/preview/index.html` in a browser for a filled HTML mock (v0.1.5)
 with sample Mars as MATCH hero + RELATED. Marketplace card: `preview.png`.
 
 ## License

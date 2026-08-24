@@ -3,11 +3,11 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 
-// Nested details panel for Fair Witness (loaded by BarWidget — not a separate kind).
-// 0.1.4 — discoverability keywords/aliases; LOOK UP + MATCH hero + RELATED. No vendor chrome.
+// Nested details panel for Encyclopedic (loaded by BarWidget — not a separate kind).
+// 0.1.5 — discoverability keywords/aliases; LOOK UP + MATCH hero + RELATED. No vendor chrome.
 Panel {
   id: root
-  moduleName: "harris.fair-witness"
+  moduleName: "harris.encyclopedic"
   manageIpc: false
 
   property var anchorItem: null
@@ -771,7 +771,7 @@ Panel {
         // Quiet footer
         Text {
           width: parent.width
-          text: "unofficial · not affiliated with xAI / Grokipedia · Fair Witness is Heinlein"
+          text: "unofficial · not affiliated with xAI / Grokipedia · Encyclopedic is Heinlein"
           color: root.contentForeground
           opacity: 0.22
           font.family: root.contentFontFamily

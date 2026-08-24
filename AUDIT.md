@@ -1,19 +1,19 @@
-# Audit — `harris.fair-witness` (Omarchy plugin) v0.1.1
+# Audit — `harris.encyclopedic` (Omarchy plugin) v0.1.1
 
 ## Context
 
-Fair Witness is an Omarchy Quickshell `bar-widget` plugin (`BarWidget.qml` →
+Encyclopedic is an Omarchy Quickshell `bar-widget` plugin (`BarWidget.qml` →
 `Panel.qml` + `WitnessStore.qml`) that shells out to `scripts/search.py` to hit
 Grokipedia's public full-text search endpoint and render result cards, with a
 direct-match "MATCH" hero and "RELATED" cards. The goal of this audit is to hold
-it to the bar of the author's own shipped Omarchy plugins (Yellow Pixels,
-Security Theater, Space Jockey — all found on disk and used here as the
+it to the bar of the author's own shipped Omarchy plugins (Enricherino,
+Compliantish, Rocketlauncher — all found on disk and used here as the
 "known-good" reference) and to DHH-quality Omarchy work generally, and to catch
 correctness bugs before another agent applies fixes.
 Every finding carries a stable ID, a `file:line` anchor, why it matters, and
 concrete fix guidance so it can be executed without further context. This
 document is written in the same format as the author's existing
-`omarchy-security-theater/AUDIT.md` and `omarchy-space-jockey/AUDIT.md` and is
+`omarchy-compliantish/AUDIT.md` and `omarchy-rocketlauncher/AUDIT.md` and is
 intended to be committed to the repo root as **`AUDIT.md`** (which this plugin,
 unlike its two siblings, currently lacks — see FW-18).
 **Verification performed:** all 12 source/doc files read in full;
@@ -22,7 +22,7 @@ paths exercised (valid JSON, exit 2); the two headline bugs reproduced with
 isolated tests — `strip_simple_html` re-introducing live markup (FW-01) and the
 clipboard fallback chain running `xclip`/`xsel` after `wl-copy` (FW-04). Omarchy
 conventions were checked against the author's three sibling plugins on disk, the
-bundled canonical manifests in `omarchy-space-jockey/docs/research/examples/`, the
+bundled canonical manifests in `omarchy-rocketlauncher/docs/research/examples/`, the
 official Quickshell v0.3.0 docs, and the Omarchy `quattro` shell source
 (`shell/Ui/BarWidget.qml`, `WidgetButton.qml`, `Panel.qml`, `bin/omarchy-plugin-validate`).
 Confirmed **correct** (not bugs): `WidgetButton.pressed(int button)` with
@@ -177,7 +177,7 @@ panel satisfies). (b) Keep a corrected fallback that runs exactly one tool, e.g.
   "defaultValue": 8 }
 ```
 The author's own numeric knobs use `"type": "integer"` with `min`/`max`/`step`
-(e.g. `omarchy-security-theater` `refreshIntervalSec`: `"integer"`, `min` 60,
+(e.g. `omarchy-compliantish` `refreshIntervalSec`: `"integer"`, `min` 60,
 `max` 86400, `step` 60). `"int"` is not the form any sibling or the canonical
 `manifest-template-bar-widget.json` uses. The official docs confirm only
 `string`/`boolean`/`multiselect` schema types (the inline-schema settings form is
@@ -197,13 +197,13 @@ author's own convention.
 
 **File:** `WitnessStore.qml:194-202` (`persistToDisk`), `:204-211` (`persistClear`)
 ```js
-ensureCacheDir.running = true          // async: mkdir -p ~/.cache/fair-witness
+ensureCacheDir.running = true          // async: mkdir -p ~/.cache/encyclopedic
 Qt.callLater(function() { cacheFile.setText(body) })   // may run before mkdir exits
 ```
 `Qt.callLater` fires on the next event-loop tick, typically **before** the
 `mkdir` subprocess has finished, so on a truly fresh install the first
 `setText` targets a directory that doesn't exist yet; the first successful search
-is never cached. (Same shape as `omarchy-security-theater/AUDIT.md` ST-08; it is
+is never cached. (Same shape as `omarchy-compliantish/AUDIT.md` ST-08; it is
 the shared house pattern.) Compounding it: `FileView.setText` reports failure via
 the async `saveFailed` signal, not by throwing, so the surrounding `try/catch`
 (`:198-200`) can't catch a write error — all write failures are silently dropped.
@@ -319,8 +319,8 @@ lighten `color`/`border.color` on hover, matching the mock's brightness bumps.
 ### FW-15 · Internal scaffolding leaks in DESIGN.md
 
 **File:** `DESIGN.md:5`
-`**Paths:** /workspace/omarchy-fair-witness/ · playbook peers: Yellow Pixels
-0.2.0, Space Jockey, Security Theater` ships a build-machine absolute path and
+`**Paths:** /workspace/omarchy-encyclopedic/ · playbook peers: Enricherino
+0.2.0, Rocketlauncher, Compliantish` ships a build-machine absolute path and
 internal project references in a public doc. (Same as ST-10 in the sibling
 audit.)
 **Fix:** Remove the `/workspace/…` path and the "playbook peers" line, or move
@@ -361,7 +361,7 @@ the quotes.
 ### FW-18 · Missing `AUDIT.md`; REPO.md duplicates README install
 
 **Files:** repo root (no `AUDIT.md`); `REPO.md:8-11` vs `README.md:44-46`
-Both sibling plugins ship an `AUDIT.md`; Fair Witness does not (this document is
+Both sibling plugins ship an `AUDIT.md`; Encyclopedic does not (this document is
 intended to fill that gap). `REPO.md` also re-states the README install block —
 two copies to keep in sync (cf. ST-12). **Fix:** commit this as `AUDIT.md`; have
 REPO.md link to README rather than duplicate it.
