@@ -25,6 +25,9 @@ PAGE_PREVIEW_URL = "https://grokipedia.com/api/page-preview"
 PAGE_BASE = "https://grokipedia.com/page"
 PLUGIN_ID = "kenhara.encyclopedic"
 MAX_ARTICLE_CHARS = 60000
+MAX_REMOTE_BYTES = 5 * 1024 * 1024
+MAX_CACHE_BYTES = 2 * 1024 * 1024
+MAX_RESPONSE_BYTES = 1 * 1024 * 1024
 
 
 def read_manifest_version() -> str:
@@ -44,7 +47,10 @@ USER_AGENT = f"Encyclopedic/{VERSION} (Omarchy unofficial; {PLUGIN_ID})"
 
 
 def emit(obj: dict[str, Any], exit_code: int = 0) -> None:
-    sys.stdout.write(json.dumps(obj, ensure_ascii=False) + "\n")
+    line = json.dumps(obj, ensure_ascii=False)
+    if len(line.encode("utf-8")) > MAX_RESPONSE_BYTES:
+        line = json.dumps({"ok": False, "error": "helper response too large", "retryable": False})
+    sys.stdout.write(line + "\n")
     sys.stdout.flush()
     raise SystemExit(exit_code)
 
@@ -122,14 +128,20 @@ def http_get_json(url: str, timeout: float = 30.0) -> tuple[int, Any, str]:
     req = urllib.request.Request(url, headers=headers, method="GET")
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw = resp.read().decode("utf-8", errors="replace")
+            raw_bytes = resp.read(MAX_REMOTE_BYTES + 1)
+            if len(raw_bytes) > MAX_REMOTE_BYTES:
+                return 0, {"error": "response too large"}, "response too large"
+            raw = raw_bytes.decode("utf-8", errors="replace")
             code = getattr(resp, "status", 200) or 200
             try:
                 return code, json.loads(raw) if raw else {}, raw
             except json.JSONDecodeError:
                 return code, {"_raw": raw}, raw
     except urllib.error.HTTPError as e:
-        raw = e.read().decode("utf-8", errors="replace") if e.fp else ""
+        raw_bytes = e.read(MAX_REMOTE_BYTES + 1) if e.fp else b""
+        if len(raw_bytes) > MAX_REMOTE_BYTES:
+            return 0, {"error": "response too large"}, "response too large"
+        raw = raw_bytes.decode("utf-8", errors="replace")
         try:
             parsed = json.loads(raw) if raw else {"error": str(e.reason)}
         except json.JSONDecodeError:
@@ -476,11 +488,38 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Do not call the network; emit structured dry-run JSON",
     )
+    p.add_argument(
+        "--load-cache",
+        default="",
+        help="Load and emit a bounded cache JSON file",
+    )
     return p.parse_args(argv)
+
+
+def load_cache(path: str) -> None:
+    """Bounded cache read. Oversize rejects; decode/JSON errors are a no-op."""
+    try:
+        with open(path, "rb") as f:
+            data = f.read(MAX_CACHE_BYTES + 1)
+    except Exception:
+        emit({"cleared": True})
+    if len(data) > MAX_CACHE_BYTES:
+        emit({"ok": False, "error": "cache too large"}, exit_code=1)
+    try:
+        obj = json.loads(data.decode("utf-8"))
+    except Exception:
+        emit({"cleared": True})
+    if not isinstance(obj, dict):
+        emit({"cleared": True})
+    emit(obj)
 
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    cache_path = str(args.load_cache or "").strip()
+    if cache_path:
+        load_cache(cache_path)
+
     q = str(args.query or "").strip()
     slug = str(args.page or "").strip()
     limit = max(1, min(int(args.limit or 8), 20))

@@ -44,3 +44,13 @@ python3 scripts/search.py --query ''
 python3 scripts/search.py --dry-run --query mars
 rg -n 'Style\.font\.size\(|Quickshell\.clipboard[^T]|bash -lc' .
 ```
+
+## 0.1.20 (marketplace #2218)
+
+| ID | Finding | Fix |
+|----|---------|-----|
+| **HC-01** | Unbounded `resp.read()` / `HTTPError.read()` in `http_get_json` | Cap at `MAX_REMOTE_BYTES` (5 MiB); oversize → `(0, {error: response too large})` so search/fetch_page treat as transient. Never parse a partial body. |
+| **HC-02** | Helper stdout unbounded | `emit()` rejects lines over `MAX_RESPONSE_BYTES` (1 MiB) with `{ok:false, error: helper response too large}`. |
+| **HC-03** | `WitnessStore` SplitParser accumulates with no ceiling | `maxHelperOutput` 2 MiB; per-stream overflow flags; kill producer; toast `response too large`; no JSON.parse. |
+| **HC-04** | FileView loads user-writable cache wholesale | `--load-cache` helper read capped at `MAX_CACHE_BYTES` (2 MiB); FileView writes only (`preload: false`). |
+

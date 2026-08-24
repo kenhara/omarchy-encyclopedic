@@ -22,6 +22,11 @@ Item {
   property int selectedIndex: -1
   property string searchBuf: ""
   property string articleBuf: ""
+  property string cacheBuf: ""
+  readonly property int maxHelperOutput: 2 * 1024 * 1024
+  property bool searchOverflow: false
+  property bool articleOverflow: false
+  property bool cacheOverflow: false
   property bool articleLoading: false
   property bool articleExpanded: false
   property string articleSlug: ""
@@ -238,6 +243,7 @@ Item {
       return true
     store.articleFetchSlug = s
     store.articleBuf = ""
+    store.articleOverflow = false
     pageProc.command = [
       "python3",
       "-B",
@@ -258,12 +264,14 @@ Item {
     store.articleBuf = store.articleBuf || ""
     if (!requested) {
       store.articleBuf = ""
+      store.articleOverflow = false
       store.articleLoading = false
       return
     }
     if (requested && requested !== fetchSlug) {
       store.articleFetchSlug = requested
       store.articleBuf = ""
+      store.articleOverflow = false
       store.articleLoading = true
       pageProc.command = [
         "python3",
@@ -276,6 +284,14 @@ Item {
         "PYTHONDONTWRITEBYTECODE": "1"
       })
       Qt.callLater(function() { pageProc.running = true })
+      return
+    }
+    if (store.articleOverflow) {
+      store.articleBuf = ""
+      store.articleOverflow = false
+      store.articleLoading = false
+      store.articleError = "response too large"
+      store.showToast(store.articleError)
       return
     }
     store.articleLoading = false
@@ -386,6 +402,7 @@ Item {
     store.lastError = ""
     store.lastRetryable = false
     store.searchBuf = ""
+    store.searchOverflow = false
     store.clearArticle()
     var lim = store.clampLimit(store.resultLimit)
     searchProc.command = [
@@ -566,6 +583,14 @@ Item {
 
   function onSearchFinished(exitCode) {
     store.loading = false
+    if (store.searchOverflow) {
+      store.searchBuf = ""
+      store.searchOverflow = false
+      store.lastError = "response too large"
+      store.lastRetryable = false
+      store.showToast(store.lastError)
+      return
+    }
     var raw = store.searchBuf || ""
     store.searchBuf = ""
     if (!raw.length) {
@@ -634,12 +659,46 @@ Item {
   }
 
   function bootstrap() {
-    cacheFile.reload()
+    store.cacheBuf = ""
+    store.cacheOverflow = false
+    cacheProc.command = [
+      "python3",
+      "-B",
+      store.searchPath,
+      "--load-cache",
+      store.cachePath
+    ]
+    cacheProc.environment = ({
+      "PYTHONDONTWRITEBYTECODE": "1"
+    })
+    cacheProc.running = true
   }
 
-  function onCacheLoaded(text) {
-    if (text && text.length > 2)
-      store.loadDiskText(text)
+  function onCacheFinished(exitCode) {
+    if (store.cacheOverflow) {
+      store.cacheBuf = ""
+      store.cacheOverflow = false
+      store.lastError = "response too large"
+      store.showToast(store.lastError)
+      return
+    }
+    var raw = store.cacheBuf || ""
+    store.cacheBuf = ""
+    if (!raw.length)
+      return
+    var lines = raw.split("\n")
+    var blob = ""
+    for (var i = lines.length - 1; i >= 0; i--) {
+      var line = String(lines[i] || "").trim()
+      if (line.charAt(0) === "{") {
+        blob = line
+        break
+      }
+    }
+    if (!blob.length)
+      blob = raw.trim()
+    if (blob.length)
+      store.loadDiskText(blob)
   }
 
   Component.onCompleted: {
@@ -658,8 +717,8 @@ Item {
     path: store.cachePath
     watchChanges: false
     printErrors: false
-    onLoaded: store.onCacheLoaded(text())
-    onLoadFailed: { /* first run — no cache yet */ }
+    preload: false
+    // Writes only (setText). Reads go through cacheProc --load-cache.
   }
 
   Process {
@@ -690,7 +749,16 @@ Item {
     id: pageProc
     running: false
     stdout: SplitParser {
-      onRead: function(line) { store.articleBuf += line + "\n" }
+      splitMarker: ""
+      onRead: function(line) {
+        if (store.articleOverflow) return
+        if (store.articleBuf.length + line.length + 1 > store.maxHelperOutput) {
+          store.articleOverflow = true
+          pageProc.running = false
+          return
+        }
+        store.articleBuf += line
+      }
     }
     stderr: SplitParser {
       onRead: function(line) {
@@ -708,7 +776,16 @@ Item {
     id: searchProc
     running: false
     stdout: SplitParser {
-      onRead: function(line) { store.searchBuf += line + "\n" }
+      splitMarker: ""
+      onRead: function(line) {
+        if (store.searchOverflow) return
+        if (store.searchBuf.length + line.length + 1 > store.maxHelperOutput) {
+          store.searchOverflow = true
+          searchProc.running = false
+          return
+        }
+        store.searchBuf += line
+      }
     }
     stderr: SplitParser {
       onRead: function(line) {
@@ -719,6 +796,26 @@ Item {
     }
     onExited: function(exitCode, exitStatus) {
       store.onSearchFinished(exitCode)
+    }
+  }
+
+  Process {
+    id: cacheProc
+    running: false
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(line) {
+        if (store.cacheOverflow) return
+        if (store.cacheBuf.length + line.length + 1 > store.maxHelperOutput) {
+          store.cacheOverflow = true
+          cacheProc.running = false
+          return
+        }
+        store.cacheBuf += line
+      }
+    }
+    onExited: function(exitCode, exitStatus) {
+      store.onCacheFinished(exitCode)
     }
   }
 }

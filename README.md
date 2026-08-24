@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.19
+**Version:** 0.1.20
+
+### 0.1.20: bound HTTP / helper stdout / cache (#2218)
+- Cap HTTP (5 MiB), cache (2 MiB), helper stdout (1 MiB), QML buffers (2 MiB); reject-on-exceed. Cache reads via `--load-cache`; FileView writes only.
 
 ### 0.1.19
 - Marketplace preview.png is the live Omarchy smoke screenshot.
