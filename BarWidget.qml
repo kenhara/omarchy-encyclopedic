@@ -43,7 +43,14 @@ BarWidget {
   }
 
   function toggle() {
-    if (panelLoader.item) panelLoader.item.toggle()
+    if (panelLoader.item) {
+      panelLoader.item.toggle()
+      return
+    }
+    var detail = root.panelLoadError && root.panelLoadError.length
+      ? (" load error: " + root.panelLoadError)
+      : (" Loader.status=" + panelLoader.status)
+    console.warn(moduleName + " toggle ignored — panelLoader.item is null;" + detail)
   }
 
   function closeForPopoutSwitch() {
