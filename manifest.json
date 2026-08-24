@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "kenhara.encyclopedic",
   "name": "Encyclopedic",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": "Harris Kenny",
   "license": "MIT",
   "description": "Look it up. Report what it says. Unofficial Grokipedia / xAI encyclopedia client; not affiliated.",

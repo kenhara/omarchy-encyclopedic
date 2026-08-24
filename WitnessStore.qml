@@ -5,7 +5,7 @@ import Quickshell.Io
 // Encyclopedic — runs scripts/search.py via Process; parses JSON stdout.
 // Public Grokipedia search only. No API keys.
 // Caches last successful search to ~/.cache/encyclopedic/last.json
-QtObject {
+Item {
   id: store
 
   property int resultLimit: 8
