@@ -199,15 +199,39 @@ Panel {
             }
           }
 
-          // Toast / error
-          Text {
+          // Toast / error (+ one-tap retry when transient)
+          Column {
             width: parent.width
+            spacing: Style.space(6)
             visible: liveStore && liveStore.lastError && liveStore.lastError.length
-            text: liveStore ? liveStore.lastError : ""
-            color: Color.urgent
-            font.family: root.contentFontFamily
-            font.pixelSize: Style.font.bodySmall
-            wrapMode: Text.WordWrap
+
+            Text {
+              width: parent.width
+              text: liveStore ? liveStore.lastError : ""
+              color: Color.urgent
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.bodySmall
+              wrapMode: Text.WordWrap
+            }
+
+            Text {
+              visible: liveStore && liveStore.lastRetryable
+                && !(liveStore && liveStore.loading)
+              text: "Try again"
+              color: root.fwAccent
+              font.family: root.contentFontFamily
+              font.pixelSize: Style.font.bodySmall
+              font.underline: retryMa.containsMouse
+              opacity: retryMa.containsMouse ? 1.0 : 0.85
+
+              MouseArea {
+                id: retryMa
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: if (liveStore) liveStore.lookUp()
+              }
+            }
           }
 
           Text {

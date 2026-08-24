@@ -13,6 +13,7 @@ Item {
   property string queryInput: ""
   property bool loading: false
   property string lastError: ""
+  property bool lastRetryable: false
   property string toastText: ""
   property var results: []          // [{title,slug,url,snippet}, ...]
   property var primary: null        // direct title/slug match, or null
@@ -181,11 +182,13 @@ Item {
     var q = String(store.queryInput || "").trim()
     if (!q.length) {
       store.lastError = "Enter something to look up"
+      store.lastRetryable = false
       store.showToast(store.lastError)
       return
     }
     store.loading = true
     store.lastError = ""
+    store.lastRetryable = false
     store.searchBuf = ""
     store.heroExpanded = false
     var lim = store.clampLimit(store.resultLimit)
@@ -314,6 +317,7 @@ Item {
     // FW-08: failed lookup must not wipe prior good results
     if (payload.ok === false) {
       store.lastError = payload.error ? String(payload.error) : "Search failed"
+      store.lastRetryable = !!(payload.retryable || payload.transient)
       store.dataSource = source || store.dataSource
       return false
     }
@@ -352,6 +356,7 @@ Item {
     store.lookedUpAt = obj.lookedUpAt || store.lookedUpAt || ""
     store.dataSource = source || "search"
     store.lastError = payload.error ? String(payload.error) : ""
+    store.lastRetryable = false
     store.selectedIndex = list.length ? 0 : -1
     if (!store.primary)
       store.heroExpanded = false
@@ -364,6 +369,7 @@ Item {
     store.searchBuf = ""
     if (!raw.length) {
       store.lastError = "search produced no output (exit " + exitCode + ")"
+      store.lastRetryable = false
       store.showToast(store.lastError)
       return
     }
@@ -390,10 +396,12 @@ Item {
       } else {
         // FW-08: keep prior results/primary/related; error + toast only
         store.lastError = String(obj.error || "Search failed")
+        store.lastRetryable = !!(obj.retryable || obj.transient)
         store.showToast(store.lastError)
       }
     } catch (e) {
       store.lastError = "search JSON parse failed"
+      store.lastRetryable = false
       store.showToast(store.lastError)
     }
   }
@@ -405,6 +413,7 @@ Item {
     store.heroExpanded = false
     store.lastPayload = null
     store.lastError = ""
+    store.lastRetryable = false
     store.lookedUpAt = ""
     store.dataSource = "none"
     store.selectedIndex = -1

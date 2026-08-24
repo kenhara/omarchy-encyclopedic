@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.13
+**Version:** 0.1.14
+
+### 0.1.14
+- Bounded retry on Grokipedia 502/503/504/timeout; friendly transient error + panel Try again (raw Cloudflare detail kept out of UI).
 
 ### 0.1.13
 - KeyboardPanel + PanelKeyCatcher shell (Compliantish/Rocketlauncher) so nested bar-widget panels open on Quattro VPS; BarWidget toggle warns if panelLoader.item is null.

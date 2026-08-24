@@ -13,6 +13,7 @@ import html
 import json
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -78,6 +79,11 @@ def sanitize_https_url(url: str, slug: str = "") -> str:
     return ""
 
 
+RETRYABLE_HTTP = frozenset({502, 503, 504})
+RETRY_BACKOFF_S = (0.5, 1.5)  # after attempt 1 and 2; 3 tries total
+USER_TRANSIENT = "Grokipedia is temporarily unavailable — try again"
+
+
 def http_get_json(url: str, timeout: float = 30.0) -> tuple[int, Any, str]:
     headers = {
         "User-Agent": USER_AGENT,
@@ -101,6 +107,69 @@ def http_get_json(url: str, timeout: float = 30.0) -> tuple[int, Any, str]:
         return int(e.code), parsed, raw
     except Exception as e:
         return 0, {"error": str(e)}, str(e)
+
+
+def is_retryable_code(code: int) -> bool:
+    return code == 0 or code in RETRYABLE_HTTP
+
+
+def http_get_json_with_retries(
+    url: str, timeout: float = 30.0
+) -> tuple[int, Any, str, int]:
+    """GET with bounded retries on network/timeout and 502/503/504.
+
+    Returns (code, payload, raw, attempts). Does not retry 4xx.
+    """
+    attempts = 0
+    code, payload, raw = 0, {}, ""
+    max_tries = 1 + len(RETRY_BACKOFF_S)
+    while attempts < max_tries:
+        attempts += 1
+        code, payload, raw = http_get_json(url, timeout=timeout)
+        if not is_retryable_code(code):
+            return code, payload, raw, attempts
+        if attempts >= max_tries:
+            break
+        time.sleep(RETRY_BACKOFF_S[attempts - 1])
+    return code, payload, raw, attempts
+
+
+def _raw_detail(payload: Any, raw: str, fallback: str = "") -> str:
+    """Debug detail for errorDetail — never the primary user-facing error."""
+    if isinstance(payload, dict):
+        for k in ("message", "error", "detail"):
+            v = payload.get(k)
+            if v and not isinstance(v, (dict, list)):
+                return str(v)[:500]
+        if payload.get("_raw"):
+            return str(payload["_raw"])[:500]
+    if raw and raw.strip():
+        # Truncate HTML/Cloudflare prose
+        return raw.strip()[:500]
+    return fallback
+
+
+def fail_result(
+    *,
+    query: str,
+    limit: int,
+    error: str,
+    retryable: bool = False,
+    error_detail: str | None = None,
+) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "ok": False,
+        "results": [],
+        "primary": None,
+        "related": [],
+        "error": error,
+        "retryable": bool(retryable),
+        "query": query,
+        "limit": limit,
+    }
+    if error_detail:
+        out["errorDetail"] = error_detail
+    return out
 
 
 def normalize_item(item: Any) -> dict[str, Any] | None:
@@ -172,45 +241,56 @@ def split_primary_related(
 def search(query: str, limit: int) -> dict[str, Any]:
     q = str(query or "").strip()
     if not q:
-        return {
-            "ok": False,
-            "results": [],
-            "primary": None,
-            "related": [],
-            "error": "empty query",
-            "query": "",
-            "limit": limit,
-        }
+        return fail_result(
+            query="", limit=limit, error="empty query", retryable=False
+        )
     limit = max(1, min(int(limit or 8), 20))
     params = urllib.parse.urlencode({"query": q, "limit": str(limit)})
     url = f"{SEARCH_URL}?{params}"
-    code, payload, _raw = http_get_json(url)
+    code, payload, raw, _attempts = http_get_json_with_retries(url)
+
     if code == 0:
-        return {
-            "ok": False,
-            "results": [],
-            "primary": None,
-            "related": [],
-            "error": f"network error: {payload.get('error') if isinstance(payload, dict) else payload}",
-            "query": q,
-            "limit": limit,
-        }
+        detail = _raw_detail(
+            payload,
+            raw,
+            fallback=str(payload.get("error") if isinstance(payload, dict) else payload),
+        )
+        return fail_result(
+            query=q,
+            limit=limit,
+            error=USER_TRANSIENT,
+            retryable=True,
+            error_detail=detail or "network/timeout",
+        )
+
     if code >= 400:
+        detail = _raw_detail(payload, raw, fallback=f"HTTP {code}")
+        if is_retryable_code(code):
+            return fail_result(
+                query=q,
+                limit=limit,
+                error=USER_TRANSIENT,
+                retryable=True,
+                error_detail=detail or f"HTTP {code}",
+            )
+        # Permanent (4xx and other non-retryable)
         msg = f"HTTP {code}"
         if isinstance(payload, dict):
             for k in ("message", "error", "detail"):
-                if payload.get(k):
-                    msg = f"HTTP {code}: {payload[k]}"
-                    break
-        return {
-            "ok": False,
-            "results": [],
-            "primary": None,
-            "related": [],
-            "error": msg,
-            "query": q,
-            "limit": limit,
-        }
+                v = payload.get(k)
+                if v and not isinstance(v, (dict, list)):
+                    # Prefer short structured messages; skip HTML blobs
+                    s = str(v).strip()
+                    if s and "<" not in s and len(s) < 200:
+                        msg = f"HTTP {code}: {s}"
+                        break
+        return fail_result(
+            query=q,
+            limit=limit,
+            error=msg,
+            retryable=False,
+            error_detail=detail if detail != msg else None,
+        )
 
     items: list[Any] = []
     if isinstance(payload, dict):
@@ -236,6 +316,7 @@ def search(query: str, limit: int) -> dict[str, Any]:
         "primary": primary,
         "related": related,
         "error": None,
+        "retryable": False,
         "query": q,
         "limit": limit,
         "totalCount": (
@@ -274,6 +355,7 @@ def main(argv: list[str] | None = None) -> None:
                 "primary": None,
                 "related": [],
                 "error": "dry-run — no network call",
+                "retryable": False,
                 "query": q,
                 "limit": limit,
             },
@@ -288,6 +370,7 @@ def main(argv: list[str] | None = None) -> None:
                 "primary": None,
                 "related": [],
                 "error": "empty query",
+                "retryable": False,
                 "query": "",
                 "limit": limit,
             },
