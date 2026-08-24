@@ -101,7 +101,7 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: witnessStore.barLabel || "● FW"
+    text: witnessStore.barLabel || "● EN"
     horizontalMargin: 8.5
     tooltipText: {
       var tip = "Encyclopedic — look it up · middle: clear"

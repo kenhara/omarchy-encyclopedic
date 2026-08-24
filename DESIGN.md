@@ -32,7 +32,7 @@ middle: clear*. Middle click clears last search / cache.
 
 ## Panel
 
-1. Big **FAIR WITNESS** + *look it up · report what it says* (+ looked-up age)
+1. Big **ENCYCLOPEDIC** + *look it up · report what it says* (+ looked-up age)
 2. One search / paste field (focused on open)
 3. Huge ice **LOOK UP**
 4. **Direct match** (title/slug == query CI): expandable **MATCH** hero

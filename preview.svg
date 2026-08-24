@@ -19,7 +19,7 @@
   <text x="1074" y="27" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13">FW</text>
   <!-- panel -->
   <rect x="720" y="56" width="440" height="670" rx="16" fill="#121216" stroke="rgba(240,240,250,0.12)"/>
-  <text x="748" y="100" fill="#6ec8e8" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="700" letter-spacing="3.5">FAIR WITNESS</text>
+  <text x="748" y="100" fill="#6ec8e8" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="700" letter-spacing="3.5">ENCYCLOPEDIC</text>
   <text x="748" y="126" fill="#f0f0fa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" opacity="0.5">look it up · report what it says</text>
   <!-- search -->
   <rect x="748" y="148" width="384" height="48" rx="10" fill="rgba(240,240,250,0.06)" stroke="rgba(240,240,250,0.14)"/>

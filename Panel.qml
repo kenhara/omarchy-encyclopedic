@@ -80,7 +80,7 @@ Panel {
           spacing: Style.space(6)
 
           Text {
-            text: "FAIR WITNESS"
+            text: "ENCYCLOPEDIC"
             color: root.fwAccent
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.title
