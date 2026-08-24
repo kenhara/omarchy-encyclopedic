@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.9
+**Version:** 0.1.10
+
+### 0.1.10
+- python3 -B + PYTHONDONTWRITEBYTECODE on search Process (stops __pycache__ reload storms); panel load error console.warn + truncated tooltip.
 
 ### 0.1.9
 - Bar chip emoji 📖 (glyph-only); Panel `import "."` so Loader resolves sibling types; best-effort panel load error in tooltip.

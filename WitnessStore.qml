@@ -191,10 +191,14 @@ Item {
     var lim = store.clampLimit(store.resultLimit)
     searchProc.command = [
       "python3",
+      "-B",
       store.searchPath,
       "--query", q,
       "--limit", String(lim)
     ]
+    searchProc.environment = ({
+      "PYTHONDONTWRITEBYTECODE": "1"
+    })
     searchProc.running = true
   }
 
