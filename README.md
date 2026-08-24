@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.18
+**Version:** 0.1.19
+
+### 0.1.19
+- Marketplace preview.png is the live Omarchy smoke screenshot.
 
 ### 0.1.18
 - Drop leftover Fair Witness "report what it says" from pitch.
