@@ -122,7 +122,9 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: witnessStore.barLabel || "📖"
+    // FA search (\uf002) — tintable; WidgetButton uses bar.fontFamily (Nerd Font)
+    text: witnessStore.barLabel || "\uf002"
+    fontSize: Style.font.caption
     horizontalMargin: 8.5
     tooltipText: {
       var tip = "Encyclopedic — look it up · middle: clear"

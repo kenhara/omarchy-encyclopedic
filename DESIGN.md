@@ -1,6 +1,6 @@
 # Encyclopedic — design notes
 
-**Status:** 0.1.5 (discoverability — keywords + aliases)  
+**Status:** 0.1.15  
 **Id:** `kenhara.encyclopedic`
 
 ## Why
@@ -27,8 +27,9 @@ Grokipedia full-text search. No API keys. No vendor chrome.
 
 ## Bar
 
-`● FW` — left click toggles panel. Tooltip: *Encyclopedic — look it up ·
-middle: clear*. Middle click clears last search / cache.
+Tintable FA search (`\uf002`) — left click toggles panel. Tooltip:
+*Encyclopedic — look it up · middle: clear*. Middle click clears last
+search / cache.
 
 ## Panel
 
@@ -36,10 +37,10 @@ middle: clear*. Middle click clears last search / cache.
 2. One search / paste field (focused on open)
 3. Huge ice **LOOK UP**
 4. **Direct match** (title/slug == query CI): expandable **MATCH** hero
-   (larger title; collapsed short snippet + Show more; expanded fuller
-   snippet + Open / Copy title / Copy link), then **RELATED** cards
+   (larger title; collapsed short snippet + Show more; always-visible
+   Preview / Open / Copy Link), then **RELATED** cards
 5. **No direct match:** flat result cards + optional **WITNESS** summary
-   for selected card — no fake hero
+   for selected / Previewed card — no fake hero
 6. Quiet footer: unofficial · not affiliated with xAI / Grokipedia · Encyclopedic is Heinlein
 
 ## Data

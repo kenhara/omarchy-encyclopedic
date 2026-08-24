@@ -332,86 +332,8 @@ Panel {
                   }
                 }
 
-                // Actions only when expanded
-                Row {
-                  spacing: Style.space(8)
-                  visible: !!(liveStore && liveStore.heroExpanded)
-
-                  Rectangle {
-                    width: Style.space(56)
-                    height: Style.space(26)
-                    radius: 6
-                    color: heroOpenMa.containsMouse
-                      ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.34)
-                      : Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.22)
-                    border.width: 1
-                    border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.5)
-                    Text {
-                      anchors.centerIn: parent
-                      text: "Open"
-                      color: root.contentForeground
-                      font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.caption
-                      font.bold: true
-                    }
-                    MouseArea {
-                      id: heroOpenMa
-                      anchors.fill: parent
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: if (liveStore) liveStore.openPrimary()
-                    }
-                  }
-
-                  Rectangle {
-                    width: Style.space(72)
-                    height: Style.space(26)
-                    radius: 6
-                    color: heroCopyTitleMa.containsMouse
-                      ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
-                      : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
-                    border.width: 1
-                    border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                    Text {
-                      anchors.centerIn: parent
-                      text: "Copy title"
-                      color: root.contentForeground
-                      font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.caption
-                    }
-                    MouseArea {
-                      id: heroCopyTitleMa
-                      anchors.fill: parent
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: if (liveStore) liveStore.copyPrimaryTitle()
-                    }
-                  }
-
-                  Rectangle {
-                    width: Style.space(68)
-                    height: Style.space(26)
-                    radius: 6
-                    color: heroCopyLinkMa.containsMouse
-                      ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
-                      : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
-                    border.width: 1
-                    border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                    Text {
-                      anchors.centerIn: parent
-                      text: "Copy link"
-                      color: root.contentForeground
-                      font.family: root.contentFontFamily
-                      font.pixelSize: Style.font.caption
-                    }
-                    MouseArea {
-                      id: heroCopyLinkMa
-                      anchors.fill: parent
-                      hoverEnabled: true
-                      cursorShape: Qt.PointingHandCursor
-                      onClicked: if (liveStore) liveStore.copyPrimaryLink()
-                    }
-                  }
+                ResultActions {
+                  primary: true
                 }
               }
 
@@ -441,6 +363,8 @@ Panel {
               delegate: Rectangle {
                 required property var modelData
                 required property int index
+                readonly property bool previewed: !!(liveStore && liveStore.selectedResult
+                  && liveStore.sameResult(liveStore.selectedResult, modelData))
                 width: contentCol.width
                 height: relatedInner.implicitHeight + Style.space(20)
                 radius: 12
@@ -448,7 +372,9 @@ Panel {
                   ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.09)
                   : root.surfaceColor
                 border.width: 1
-                border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.1)
+                border.color: previewed
+                  ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.45)
+                  : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.1)
 
                 Column {
                   id: relatedInner
@@ -479,91 +405,12 @@ Panel {
                     font.family: root.contentFontFamily
                     font.pixelSize: Style.font.bodySmall
                     wrapMode: Text.WordWrap
-                    maximumLineCount: 4
+                    maximumLineCount: previewed ? 24 : 4
                     elide: Text.ElideRight
                   }
 
-                  Row {
-                    spacing: Style.space(8)
-
-                    Rectangle {
-                      width: Style.space(56)
-                      height: Style.space(26)
-                      radius: 6
-                      color: relatedOpenMa.containsMouse
-                        ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.30)
-                        : Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.18)
-                      border.width: 1
-                      border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.4)
-                      Text {
-                        anchors.centerIn: parent
-                        text: "Open"
-                        color: root.contentForeground
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.caption
-                        font.bold: true
-                      }
-                      MouseArea {
-                        id: relatedOpenMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                          if (!liveStore) return
-                          liveStore.openUrlExternal(modelData.url || "", modelData.slug || "")
-                        }
-                      }
-                    }
-
-                    Rectangle {
-                      width: Style.space(72)
-                      height: Style.space(26)
-                      radius: 6
-                      color: relatedCopyTitleMa.containsMouse
-                        ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
-                        : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
-                      border.width: 1
-                      border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                      Text {
-                        anchors.centerIn: parent
-                        text: "Copy title"
-                        color: root.contentForeground
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.caption
-                      }
-                      MouseArea {
-                        id: relatedCopyTitleMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: if (liveStore) liveStore.copyText(modelData.title || "")
-                      }
-                    }
-
-                    Rectangle {
-                      width: Style.space(68)
-                      height: Style.space(26)
-                      radius: 6
-                      color: relatedCopyLinkMa.containsMouse
-                        ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
-                        : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
-                      border.width: 1
-                      border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                      Text {
-                        anchors.centerIn: parent
-                        text: "Copy link"
-                        color: root.contentForeground
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.caption
-                      }
-                      MouseArea {
-                        id: relatedCopyLinkMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: if (liveStore) liveStore.copyText(modelData.url || "")
-                      }
-                    }
+                  ResultActions {
+                    result: modelData
                   }
                 }
 
@@ -572,7 +419,11 @@ Panel {
                   anchors.fill: parent
                   z: -1
                   hoverEnabled: true
-                  acceptedButtons: Qt.NoButton
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    if (!liveStore) return
+                    liveStore.previewObject(modelData)
+                  }
                 }
               }
             }
@@ -589,6 +440,7 @@ Panel {
               delegate: Rectangle {
                 required property var modelData
                 required property int index
+                readonly property bool previewed: !!(liveStore && liveStore.selectedIndex === index)
                 width: contentCol.width
                 height: cardInner.implicitHeight + Style.space(20)
                 radius: 12
@@ -632,88 +484,13 @@ Panel {
                     font.family: root.contentFontFamily
                     font.pixelSize: Style.font.bodySmall
                     wrapMode: Text.WordWrap
-                    maximumLineCount: 4
+                    maximumLineCount: previewed ? 24 : 4
                     elide: Text.ElideRight
                   }
 
-                  Row {
-                    spacing: Style.space(8)
-
-                    Rectangle {
-                      width: Style.space(56)
-                      height: Style.space(26)
-                      radius: 6
-                      color: flatOpenMa.containsMouse
-                        ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.30)
-                        : Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.18)
-                      border.width: 1
-                      border.color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.4)
-                      Text {
-                        anchors.centerIn: parent
-                        text: "Open"
-                        color: root.contentForeground
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.caption
-                        font.bold: true
-                      }
-                      MouseArea {
-                        id: flatOpenMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: if (liveStore) liveStore.openResult(index)
-                      }
-                    }
-
-                    Rectangle {
-                      width: Style.space(72)
-                      height: Style.space(26)
-                      radius: 6
-                      color: flatCopyTitleMa.containsMouse
-                        ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
-                        : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
-                      border.width: 1
-                      border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                      Text {
-                        anchors.centerIn: parent
-                        text: "Copy title"
-                        color: root.contentForeground
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.caption
-                      }
-                      MouseArea {
-                        id: flatCopyTitleMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: if (liveStore) liveStore.copyTitle(index)
-                      }
-                    }
-
-                    Rectangle {
-                      width: Style.space(68)
-                      height: Style.space(26)
-                      radius: 6
-                      color: flatCopyLinkMa.containsMouse
-                        ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
-                        : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08)
-                      border.width: 1
-                      border.color: Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
-                      Text {
-                        anchors.centerIn: parent
-                        text: "Copy link"
-                        color: root.contentForeground
-                        font.family: root.contentFontFamily
-                        font.pixelSize: Style.font.caption
-                      }
-                      MouseArea {
-                        id: flatCopyLinkMa
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: if (liveStore) liveStore.copyLink(index)
-                      }
-                    }
+                  ResultActions {
+                    result: modelData
+                    resultIndex: index
                   }
                 }
 
@@ -736,10 +513,10 @@ Panel {
             }
           }
 
-          // Optional short summary for selected result (flat mode only)
+          // WITNESS preview for selected related / flat result (not the MATCH hero)
           Rectangle {
             width: parent.width
-            visible: liveStore && liveStore.selectedResult && !liveStore.hasPrimary
+            visible: liveStore && liveStore.showingWitness
             height: visible ? summaryInner.implicitHeight + Style.space(20) : 0
             radius: 12
             color: Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.06)
@@ -815,6 +592,112 @@ Panel {
             wrapMode: Text.WordWrap
           }
         }
+      }
+    }
+  }
+
+  // Compact glyph+label chips (FA/Nerd, tintable). Always-visible Preview / Open / Copy Link.
+  component ActionChip: Rectangle {
+    id: chip
+    property string glyph: ""
+    property string label: ""
+    property bool accent: false
+    signal clicked()
+
+    readonly property bool hovered: chipMa.containsMouse
+
+    implicitWidth: chipRow.implicitWidth + Style.space(16)
+    implicitHeight: Style.space(26)
+    width: implicitWidth
+    height: implicitHeight
+    radius: 6
+    color: chip.accent
+      ? (chip.hovered
+          ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.34)
+          : Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.22))
+      : (chip.hovered
+          ? Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.14)
+          : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.08))
+    border.width: 1
+    border.color: chip.accent
+      ? Qt.rgba(root.fwAccent.r, root.fwAccent.g, root.fwAccent.b, 0.5)
+      : Qt.rgba(root.contentForeground.r, root.contentForeground.g, root.contentForeground.b, 0.12)
+
+    Row {
+      id: chipRow
+      anchors.centerIn: parent
+      spacing: Style.space(6)
+      Text {
+        text: chip.glyph
+        color: chip.accent ? root.fwAccent : root.contentForeground
+        font.family: root.contentFontFamily
+        font.pixelSize: Style.font.caption
+        anchors.verticalCenter: parent.verticalCenter
+      }
+      Text {
+        text: chip.label
+        color: root.contentForeground
+        font.family: root.contentFontFamily
+        font.pixelSize: Style.font.caption
+        font.bold: chip.accent
+        anchors.verticalCenter: parent.verticalCenter
+      }
+    }
+    MouseArea {
+      id: chipMa
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: chip.clicked()
+    }
+  }
+
+  component ResultActions: Row {
+    id: actions
+    property var result: null
+    property bool primary: false
+    property int resultIndex: -1
+    spacing: Style.space(8)
+
+    ActionChip {
+      glyph: "\uf06e"
+      label: "Preview"
+      accent: true
+      onClicked: {
+        if (!root.liveStore) return
+        if (actions.primary)
+          root.liveStore.previewPrimary()
+        else if (actions.resultIndex >= 0)
+          root.liveStore.previewResult(actions.resultIndex)
+        else
+          root.liveStore.previewObject(actions.result)
+      }
+    }
+    ActionChip {
+      glyph: "\uf08e"
+      label: "Open"
+      accent: true
+      onClicked: {
+        if (!root.liveStore) return
+        if (actions.primary)
+          root.liveStore.openPrimary()
+        else if (actions.resultIndex >= 0)
+          root.liveStore.openResult(actions.resultIndex)
+        else if (actions.result)
+          root.liveStore.openUrlExternal(actions.result.url || "", actions.result.slug || "")
+      }
+    }
+    ActionChip {
+      glyph: "\uf0c5"
+      label: "Copy Link"
+      onClicked: {
+        if (!root.liveStore) return
+        if (actions.primary)
+          root.liveStore.copyPrimaryLink()
+        else if (actions.resultIndex >= 0)
+          root.liveStore.copyLink(actions.resultIndex)
+        else if (actions.result)
+          root.liveStore.copyText(actions.result.url || "")
       }
     }
   }

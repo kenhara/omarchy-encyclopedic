@@ -11,7 +11,11 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.14
+**Version:** 0.1.15
+
+### 0.1.15
+- Bar chip: tintable FA magnifying glass (`\uf002`, Nerd Font search) at `Style.font.caption` — no emoji.
+- Result actions always visible (hero + related + flat): **Preview** (`\uf06e` eye, in-panel; no `xdg-open`), **Open** (`\uf08e` external-link, browser), **Copy Link** (`\uf0c5` copy). Copy title removed.
 
 ### 0.1.14
 - Bounded retry on Grokipedia 502/503/504/timeout; friendly transient error + panel Try again (raw Cloudflare detail kept out of UI).
@@ -135,13 +139,13 @@ python3 scripts/search.py --dry-run --query 'mars'
 
 ## Usage
 
-1. **Left-click** bar `● FW` → panel.
+1. **Left-click** bar search glyph → panel.
 2. Type or paste a topic into the one field.
 3. Hit **LOOK UP** (or Enter).
 4. If the query exactly matches a title or slug, a **MATCH** hero appears at
    the top (expandable). **RELATED** cards list the rest. Otherwise a flat
    result list (and optional **WITNESS** snippet for the selected card).
-5. **Open** / **Copy title** / **Copy link** on hero or cards.
+5. **Preview** (in-panel) / **Open** (browser) / **Copy Link** on hero or cards — always visible.
 6. **Middle-click** bar clears the last search (and cache).
 
 ### Controls
@@ -153,10 +157,11 @@ python3 scripts/search.py --dry-run --query 'mars'
 | Middle-click bar | Clear last search (+ cache); toast "Cleared" |
 | Search field | One paste/type; Enter triggers LOOK UP |
 | LOOK UP | `scripts/search.py` → result cards |
-| Open | `https:` URLs only (`Qt.openUrlExternally` / `xdg-open`) |
-| Copy title / Copy link | Clipboard |
-| MATCH hero | Expand/collapse; Open / Copy when expanded |
-| Select card (no match) | Updates WITNESS summary |
+| Open | Browser: `https:` URLs only (`Qt.openUrlExternally` / `xdg-open`) |
+| Preview | In-panel: select result + expand MATCH / WITNESS snippet (does not leave Omarchy) |
+| Copy Link | Clipboard (URL only) |
+| MATCH hero | Expand/collapse snippet; Preview / Open / Copy Link always visible |
+| Select card (related / no match) | Updates WITNESS preview |
 
 ## Remove
 

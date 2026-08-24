@@ -41,7 +41,8 @@ Item {
   }
   readonly property string searchPath: pluginDir + "/scripts/search.py"
 
-  readonly property string barGlyph: "📖"
+  // FA search (\uf002) — tintable via Text.color; color emoji is not.
+  readonly property string barGlyph: "\uf002"
   readonly property string barLabel: store.barGlyph
   readonly property string lastUpdatedText: formatUpdated(store.lookedUpAt)
 
@@ -52,6 +53,16 @@ Item {
     if (store.selectedIndex < 0 || !store.results || store.selectedIndex >= store.results.length)
       return null
     return store.results[store.selectedIndex]
+  }
+
+  // WITNESS pane: selected result that is not the MATCH hero (hero is the preview).
+  readonly property bool showingWitness: {
+    var s = store.selectedResult
+    if (!s)
+      return false
+    if (store.hasPrimary && store.sameResult(store.primary, s))
+      return false
+    return true
   }
 
   function clampLimit(n) {
@@ -142,6 +153,32 @@ Item {
     return true
   }
 
+  function sameResult(a, b) {
+    if (!a || !b || typeof a !== "object" || typeof b !== "object")
+      return false
+    if (a === b)
+      return true
+    var aslug = String(a.slug || "")
+    var bslug = String(b.slug || "")
+    if (aslug.length && aslug === bslug)
+      return true
+    var aurl = String(a.url || "")
+    var burl = String(b.url || "")
+    if (aurl.length && aurl === burl)
+      return true
+    return false
+  }
+
+  function indexOfResult(obj) {
+    if (!obj || !store.results)
+      return -1
+    for (var i = 0; i < store.results.length; i++) {
+      if (store.sameResult(store.results[i], obj))
+        return i
+    }
+    return -1
+  }
+
   function selectResult(index) {
     var i = parseInt(index, 10)
     if (!isFinite(i) || i < 0 || !store.results || i >= store.results.length) {
@@ -149,6 +186,40 @@ Item {
     } else {
       store.selectedIndex = i
     }
+  }
+
+  // In-panel preview — never xdg-open / Qt.openUrlExternally.
+  function previewResult(index) {
+    var i = (index === undefined || index === null) ? store.selectedIndex : parseInt(index, 10)
+    if (!isFinite(i) || i < 0 || !store.results || i >= store.results.length) {
+      store.showToast("No result")
+      return false
+    }
+    store.selectedIndex = i
+    if (store.hasPrimary && store.sameResult(store.primary, store.results[i]))
+      store.heroExpanded = true
+    return true
+  }
+
+  function previewPrimary() {
+    if (!store.primary) {
+      store.showToast("No result")
+      return false
+    }
+    var i = store.indexOfResult(store.primary)
+    if (i >= 0)
+      store.selectedIndex = i
+    store.heroExpanded = true
+    return true
+  }
+
+  function previewObject(obj) {
+    var i = store.indexOfResult(obj)
+    if (i < 0) {
+      store.showToast("No result")
+      return false
+    }
+    return store.previewResult(i)
   }
 
   function openResult(index) {
@@ -160,13 +231,6 @@ Item {
     store.selectedIndex = i
     var r = store.results[i]
     return store.openUrlExternal(r && r.url ? r.url : "", r && r.slug ? r.slug : "")
-  }
-
-  function copyTitle(index) {
-    var i = (index === undefined || index === null) ? store.selectedIndex : parseInt(index, 10)
-    if (!isFinite(i) || i < 0 || !store.results || i >= store.results.length)
-      return store.copyText("")
-    return store.copyText(store.results[i].title || "")
   }
 
   function copyLink(index) {
@@ -289,12 +353,6 @@ Item {
       return false
     }
     return store.openUrlExternal(store.primary.url || "", store.primary.slug || "")
-  }
-
-  function copyPrimaryTitle() {
-    if (!store.primary)
-      return store.copyText("")
-    return store.copyText(store.primary.title || "")
   }
 
   function copyPrimaryLink() {
