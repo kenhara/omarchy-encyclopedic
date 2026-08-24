@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.10
+**Version:** 0.1.11
+
+### 0.1.11
+- Remove Panel `import "."` (was shadowing qs.Ui Panel under Loader → dead bar clicks); sibling types via qmldir/module context like Rocketlauncher.
 
 ### 0.1.10
 - python3 -B + PYTHONDONTWRITEBYTECODE on search Process (stops __pycache__ reload storms); panel load error console.warn + truncated tooltip.
