@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.6
+**Version:** 0.1.9
+
+### 0.1.9
+- Bar chip emoji 📖 (glyph-only); Panel `import "."` so Loader resolves sibling types; best-effort panel load error in tooltip.
 
 ### 0.1.6
 - Renamed plugin id `harris.encyclopedic` → `kenhara.encyclopedic` (install path `~/.config/omarchy/plugins/kenhara.encyclopedic`). Display name unchanged.

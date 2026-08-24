@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Commons
 import qs.Ui
+import "."
 
 // Nested details panel for Encyclopedic (loaded by BarWidget — not a separate kind).
 // 0.1.5 — discoverability keywords/aliases; LOOK UP + MATCH hero + RELATED. No vendor chrome.

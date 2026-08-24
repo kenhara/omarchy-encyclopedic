@@ -40,8 +40,8 @@ Item {
   }
   readonly property string searchPath: pluginDir + "/scripts/search.py"
 
-  readonly property string barGlyph: "●"
-  readonly property string barLabel: store.barGlyph + " EN"
+  readonly property string barGlyph: "📖"
+  readonly property string barLabel: store.barGlyph
   readonly property string lastUpdatedText: formatUpdated(store.lookedUpAt)
 
   readonly property bool hasResults: store.results && store.results.length > 0
