@@ -1,4 +1,4 @@
-# Audit — `harris.encyclopedic` (Omarchy plugin) v0.1.1
+# Audit — `kenhara.encyclopedic` (Omarchy plugin) v0.1.1
 
 ## Context
 

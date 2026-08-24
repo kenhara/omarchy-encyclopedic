@@ -6,7 +6,7 @@ import qs.Ui
 // Encyclopedic bar entry — nested Panel.qml via Loader. kinds: ["bar-widget"] only.
 BarWidget {
   id: root
-  moduleName: "harris.encyclopedic"
+  moduleName: "kenhara.encyclopedic"
 
   readonly property bool opened: panelLoader.item
     ? panelLoader.item.opened === true

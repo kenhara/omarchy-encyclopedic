@@ -5,7 +5,7 @@
 Patch bump for marketplace discoverability before UTM smoke: expanded `keywords` + restored `barWidget.aliases` (Grokipedia/Grok/Wikipedia/Heinlein/xAI…); README Discoverability (aliases for discovery docs — loader may not index). Category stays **Productivity**. No QML/search change.
 
 
-Omarchy Quattro pre-ship pass for `harris.encyclopedic`. Builds on the 0.1.2
+Omarchy Quattro pre-ship pass for `kenhara.encyclopedic`. Builds on the 0.1.2
 audit map (`AUDIT.md` / `AUDIT-NOTES.md`).
 
 ## Checklist

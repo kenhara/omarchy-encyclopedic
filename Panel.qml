@@ -7,7 +7,7 @@ import qs.Ui
 // 0.1.5 — discoverability keywords/aliases; LOOK UP + MATCH hero + RELATED. No vendor chrome.
 Panel {
   id: root
-  moduleName: "harris.encyclopedic"
+  moduleName: "kenhara.encyclopedic"
   manageIpc: false
 
   property var anchorItem: null

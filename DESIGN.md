@@ -1,7 +1,7 @@
 # Encyclopedic — design notes
 
 **Status:** 0.1.5 (discoverability — keywords + aliases)  
-**Id:** `harris.encyclopedic`
+**Id:** `kenhara.encyclopedic`
 
 ## Why
 

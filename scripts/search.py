@@ -21,7 +21,7 @@ from typing import Any
 
 SEARCH_URL = "https://grokipedia.com/api/full-text-search"
 PAGE_BASE = "https://grokipedia.com/page"
-PLUGIN_ID = "harris.encyclopedic"
+PLUGIN_ID = "kenhara.encyclopedic"
 
 
 def read_manifest_version() -> str:
@@ -33,7 +33,7 @@ def read_manifest_version() -> str:
             return ver
     except Exception:
         pass
-    return "0.1.5"
+    return "0.1.6"
 
 
 VERSION = read_manifest_version()

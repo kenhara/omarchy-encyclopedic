@@ -8,10 +8,13 @@ Public Grokipedia full-text search for Omarchy — one field, **LOOK UP**, resul
 cards. Named for Heinlein’s Encyclopedic (*Stranger in a Strange Land*). No API
 keys. No vendor chrome.
 
-**ID:** `harris.encyclopedic`  
+**ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.5
+**Version:** 0.1.6
+
+### 0.1.6
+- Renamed plugin id `harris.encyclopedic` → `kenhara.encyclopedic` (install path `~/.config/omarchy/plugins/kenhara.encyclopedic`). Display name unchanged.
 
 ### 0.1.5
 - Discoverability: expanded `keywords` + restored `barWidget.aliases` for search docs; honest note (loader may not index aliases).
@@ -67,7 +70,7 @@ may not index them. Display name stays **Encyclopedic** (no Grok in the title).
 
 ```sh
 omarchy plugin add https://github.com/kenhara/omarchy-encyclopedic.git --enable
-omarchy bar move harris.encyclopedic --section right
+omarchy bar move kenhara.encyclopedic --section right
 ```
 
 ### Local copy (this tree)
@@ -77,12 +80,12 @@ machine:
 
 ```sh
 mkdir -p ~/.config/omarchy/plugins
-cp -a . ~/.config/omarchy/plugins/harris.encyclopedic
+cp -a . ~/.config/omarchy/plugins/kenhara.encyclopedic
 
-omarchy plugin validate ~/.config/omarchy/plugins/harris.encyclopedic
+omarchy plugin validate ~/.config/omarchy/plugins/kenhara.encyclopedic
 omarchy-shell shell rescanPlugins
 
-omarchy bar move harris.encyclopedic --section right
+omarchy bar move kenhara.encyclopedic --section right
 ```
 
 Hot reload applies on save under `~/.config/omarchy/plugins/`.
@@ -91,7 +94,7 @@ Hot reload applies on save under `~/.config/omarchy/plugins/`.
 
 ```sh
 mkdir -p ~/.config/omarchy/plugins
-ln -sfn /path/to/omarchy-encyclopedic ~/.config/omarchy/plugins/harris.encyclopedic
+ln -sfn /path/to/omarchy-encyclopedic ~/.config/omarchy/plugins/kenhara.encyclopedic
 omarchy-shell shell rescanPlugins
 ```
 
@@ -140,7 +143,7 @@ python3 scripts/search.py --dry-run --query 'mars'
 ## Remove
 
 ```sh
-omarchy plugin remove harris.encyclopedic
+omarchy plugin remove kenhara.encyclopedic
 ```
 
 Optional cache cleanup:
@@ -155,7 +158,7 @@ rm -rf ~/.cache/encyclopedic
 - Article pages: `https://grokipedia.com/page/{slug}`
 
 Outbound HTTPS only when you click **LOOK UP** (or open a result). No auth.
-User-Agent: `Encyclopedic/<manifest version> (Omarchy unofficial; harris.encyclopedic)`
+User-Agent: `Encyclopedic/<manifest version> (Omarchy unofficial; kenhara.encyclopedic)`
 (version read from `manifest.json`). One HTTPS GET per LOOK UP.
 
 Cache (last **successful** search): `~/.cache/encyclopedic/last.json`.
@@ -175,7 +178,7 @@ Empty query and `--dry-run` emit structured error JSON (non-zero exit).
 ## Layout
 
 ```
-manifest.json          # harris.encyclopedic @ 0.1.3
+manifest.json          # kenhara.encyclopedic @ 0.1.3
 BarWidget.qml          # bar entry + Loader → Panel; middle-click clear
 Panel.qml              # search + LOOK UP + result cards
 WitnessStore.qml       # queryInput, lookUp, cache, Process → search.py
