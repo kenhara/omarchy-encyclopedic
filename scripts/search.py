@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Encyclopedic — public Grokipedia full-text search (no auth).
 
-CLI for Omarchy bar-widget.
+CLI for Omarchy bar-widget (search + --page preview).
 User-Agent version is read from manifest.json (fallback 0.1.5).
 
 Unofficial. Not affiliated with xAI / Grokipedia.
@@ -21,8 +21,10 @@ from pathlib import Path
 from typing import Any
 
 SEARCH_URL = "https://grokipedia.com/api/full-text-search"
+PAGE_PREVIEW_URL = "https://grokipedia.com/api/page-preview"
 PAGE_BASE = "https://grokipedia.com/page"
 PLUGIN_ID = "kenhara.encyclopedic"
+MAX_ARTICLE_CHARS = 60000
 
 
 def read_manifest_version() -> str:
@@ -61,6 +63,34 @@ def strip_simple_html(text: str) -> str:
     s = re.sub(r"<[^>]+>", "", s)
     s = html.unescape(s)
     s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def strip_article_markdown(text: str, max_chars: int = MAX_ARTICLE_CHARS) -> str:
+    """Plain-text article body for in-panel preview. Keep paragraphs."""
+    if not text:
+        return ""
+    s = html.unescape(str(text))
+    s = s.replace("\r\n", "\n").replace("\r", "\n")
+    s = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", s)
+    s = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", s)
+    s = re.sub(r"\[\]\([^)]*\)", "", s)
+    s = re.sub(r"^#{1,6}\s*", "", s, flags=re.M)
+    s = re.sub(r"^[-*]{3,}\s*$", "", s, flags=re.M)
+    s = re.sub(r"\*\*([^*]+)\*\*", r"\1", s)
+    s = re.sub(r"__([^_]+)__", r"\1", s)
+    s = re.sub(r"(?<!\w)\*([^*]+)\*(?!\w)", r"\1", s)
+    s = re.sub(r"(?<!\w)_([^_]+)_(?!\w)", r"\1", s)
+    s = re.sub(r"`([^`]+)`", r"\1", s)
+    s = re.sub(r"</?(?:em|b|i|strong|mark|span|a|br|p|div|h[1-6])(?:\s[^>]*)?>", " ", s, flags=re.I)
+    s = re.sub(r"<[^>]+>", "", s)
+    s = html.unescape(s)
+    s = re.sub(r"[ \t]+\n", "\n", s)
+    s = re.sub(r"\n{3,}", "\n\n", s)
+    s = re.sub(r"[ \t]{2,}", " ", s)
+    s = s.strip()
+    if max_chars > 0 and len(s) > max_chars:
+        s = s[:max_chars].rstrip() + "\n\n…"
     return s
 
 
@@ -327,6 +357,108 @@ def search(query: str, limit: int) -> dict[str, Any]:
     }
 
 
+def fail_page(
+    *,
+    slug: str,
+    error: str,
+    retryable: bool = False,
+    error_detail: str | None = None,
+    found: bool = False,
+) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        "ok": False,
+        "found": bool(found),
+        "slug": slug,
+        "title": "",
+        "content": "",
+        "description": "",
+        "error": error,
+        "retryable": bool(retryable),
+    }
+    if error_detail:
+        out["errorDetail"] = error_detail
+    return out
+
+
+def fetch_page(slug: str) -> dict[str, Any]:
+    """GET /api/page-preview?slug=… — full article body for in-panel Preview."""
+    s = str(slug or "").strip().lstrip("/")
+    if not s:
+        return fail_page(slug="", error="empty slug", retryable=False)
+
+    params = urllib.parse.urlencode({"slug": s})
+    url = f"{PAGE_PREVIEW_URL}?{params}"
+    code, payload, raw, _attempts = http_get_json_with_retries(url, timeout=45.0)
+
+    if code == 0:
+        detail = _raw_detail(
+            payload,
+            raw,
+            fallback=str(payload.get("error") if isinstance(payload, dict) else payload),
+        )
+        return fail_page(
+            slug=s,
+            error=USER_TRANSIENT,
+            retryable=True,
+            error_detail=detail or "network/timeout",
+        )
+
+    if code >= 400:
+        detail = _raw_detail(payload, raw, fallback=f"HTTP {code}")
+        if is_retryable_code(code):
+            return fail_page(
+                slug=s,
+                error=USER_TRANSIENT,
+                retryable=True,
+                error_detail=detail or f"HTTP {code}",
+            )
+        if code == 404:
+            return fail_page(slug=s, error="Page not found", retryable=False, error_detail=detail)
+        msg = f"HTTP {code}"
+        if isinstance(payload, dict):
+            for k in ("message", "error", "detail"):
+                v = payload.get(k)
+                if v and not isinstance(v, (dict, list)):
+                    t = str(v).strip()
+                    if t and "<" not in t and len(t) < 200:
+                        msg = f"HTTP {code}: {t}"
+                        break
+        return fail_page(
+            slug=s,
+            error=msg,
+            retryable=False,
+            error_detail=detail if detail != msg else None,
+        )
+
+    if not isinstance(payload, dict):
+        return fail_page(slug=s, error="unexpected page payload", retryable=False)
+
+    if payload.get("found") is False:
+        return fail_page(slug=s, error="Page not found", retryable=False)
+
+    page = payload.get("page")
+    if not isinstance(page, dict):
+        page = payload if payload.get("content") or payload.get("title") else None
+    if not isinstance(page, dict):
+        return fail_page(slug=s, error="Page not found", retryable=False)
+
+    title = strip_simple_html(str(page.get("title") or s))
+    desc = strip_simple_html(str(page.get("description") or ""))
+    raw_content = page.get("content") or page.get("text") or page.get("body") or ""
+    body = strip_article_markdown(str(raw_content or desc or ""))
+    out_slug = str(page.get("slug") or s).strip() or s
+    return {
+        "ok": True,
+        "found": True,
+        "slug": out_slug,
+        "title": title,
+        "content": body,
+        "description": desc,
+        "error": None,
+        "retryable": False,
+    }
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="search.py",
@@ -334,6 +466,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     p.add_argument("--query", "-q", default="", help="Search query")
     p.add_argument("--limit", "-n", type=int, default=8, help="Max results (1–20)")
+    p.add_argument(
+        "--page",
+        default="",
+        help="Fetch article body by slug (page-preview API)",
+    )
     p.add_argument(
         "--dry-run",
         action="store_true",
@@ -345,7 +482,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     q = str(args.query or "").strip()
+    slug = str(args.page or "").strip()
     limit = max(1, min(int(args.limit or 8), 20))
+
+    if slug:
+        if args.dry_run:
+            emit(
+                {
+                    "ok": False,
+                    "found": False,
+                    "slug": slug,
+                    "title": "",
+                    "content": "",
+                    "description": "",
+                    "error": "dry-run — no network call",
+                    "retryable": False,
+                },
+                exit_code=2,
+            )
+        out = fetch_page(slug)
+        emit(out, exit_code=0 if out.get("ok") else 1)
 
     if args.dry_run:
         emit(

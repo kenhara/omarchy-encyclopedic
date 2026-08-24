@@ -101,7 +101,7 @@ Panel {
             }
 
             Text {
-              text: "look it up · report what it says"
+              text: "look it up"
               color: root.contentForeground
               opacity: 0.5
               font.family: root.contentFontFamily
@@ -301,22 +301,47 @@ Panel {
 
                 Text {
                   width: parent.width
-                  visible: !!(liveStore && liveStore.primary && liveStore.primary.snippet
+                  visible: {
+                    if (liveStore && liveStore.articleIsPrimary && liveStore.articleBody)
+                      return true
+                    if (liveStore && liveStore.articleLoading && liveStore.articleIsPrimary)
+                      return true
+                    return !!(liveStore && liveStore.primary && liveStore.primary.snippet
                               && String(liveStore.primary.snippet).length)
-                  text: liveStore && liveStore.primary ? (liveStore.primary.snippet || "") : ""
+                  }
+                  text: {
+                    if (liveStore && liveStore.articleIsPrimary && liveStore.articleBody)
+                      return liveStore.articleBody
+                    if (liveStore && liveStore.articleLoading && liveStore.articleIsPrimary)
+                      return (liveStore.primary && liveStore.primary.snippet)
+                        ? liveStore.primary.snippet
+                        : "Loading article…"
+                    return liveStore && liveStore.primary ? (liveStore.primary.snippet || "") : ""
+                  }
                   textFormat: Text.PlainText
                   color: root.contentForeground
                   opacity: 0.58
                   font.family: root.contentFontFamily
                   font.pixelSize: Style.font.body
                   wrapMode: Text.WordWrap
-                  maximumLineCount: liveStore && liveStore.heroExpanded ? 24 : 3
+                  maximumLineCount: {
+                    if (liveStore && liveStore.articleIsPrimary && liveStore.articleBody)
+                      return liveStore.articleExpanded ? 0 : 16
+                    return 3
+                  }
                   elide: Text.ElideRight
                 }
 
-                // Expand / collapse affordance
+                // Expand / collapse the in-panel article (fetches if needed)
                 Text {
-                  text: liveStore && liveStore.heroExpanded ? "▾ Show less" : "▸ Show more"
+                  text: {
+                    if (liveStore && liveStore.articleLoading && liveStore.articleIsPrimary)
+                      return "Loading…"
+                    if (liveStore && liveStore.articleIsPrimary && liveStore.articleBody
+                        && liveStore.articleExpanded)
+                      return "▾ Show less"
+                    return "▸ Show more"
+                  }
                   color: showMoreMa.containsMouse ? Qt.lighter(root.fwAccent, 1.15) : root.fwAccent
                   font.family: root.contentFontFamily
                   font.pixelSize: Style.font.bodySmall
@@ -327,7 +352,9 @@ Panel {
                     anchors.fill: parent
                     anchors.margins: -Style.space(4)
                     hoverEnabled: true
+                    preventStealing: true
                     cursorShape: Qt.PointingHandCursor
+                    enabled: !(liveStore && liveStore.articleLoading && liveStore.articleIsPrimary)
                     onClicked: if (liveStore) liveStore.toggleHero()
                   }
                 }
@@ -405,7 +432,7 @@ Panel {
                     font.family: root.contentFontFamily
                     font.pixelSize: Style.font.bodySmall
                     wrapMode: Text.WordWrap
-                    maximumLineCount: previewed ? 24 : 4
+                    maximumLineCount: 4
                     elide: Text.ElideRight
                   }
 
@@ -484,7 +511,7 @@ Panel {
                     font.family: root.contentFontFamily
                     font.pixelSize: Style.font.bodySmall
                     wrapMode: Text.WordWrap
-                    maximumLineCount: previewed ? 24 : 4
+                    maximumLineCount: 4
                     elide: Text.ElideRight
                   }
 
@@ -555,15 +582,58 @@ Panel {
 
               Text {
                 width: parent.width
-                text: liveStore && liveStore.selectedResult
-                  ? (liveStore.selectedResult.snippet || "(no snippet)")
-                  : ""
+                text: {
+                  var sel = liveStore ? liveStore.selectedResult : null
+                  var slug = sel ? String(sel.slug || "") : ""
+                  if (liveStore && liveStore.articleLoading && slug === liveStore.articleRequestSlug)
+                    return "Loading article…"
+                  if (liveStore && liveStore.articleBody && slug === liveStore.articleSlug)
+                    return liveStore.articleBody
+                  return sel ? (sel.snippet || "(no snippet)") : ""
+                }
                 textFormat: Text.PlainText
                 color: root.contentForeground
                 opacity: 0.6
                 font.family: root.contentFontFamily
                 font.pixelSize: Style.font.bodySmall
                 wrapMode: Text.WordWrap
+                maximumLineCount: {
+                  var sel = liveStore ? liveStore.selectedResult : null
+                  var slug = sel ? String(sel.slug || "") : ""
+                  if (liveStore && liveStore.articleBody && slug === liveStore.articleSlug)
+                    return liveStore.articleExpanded ? 0 : 16
+                  return 16
+                }
+                elide: Text.ElideRight
+              }
+
+              Text {
+                visible: {
+                  var sel = liveStore ? liveStore.selectedResult : null
+                  var slug = sel ? String(sel.slug || "") : ""
+                  if (!(liveStore && liveStore.articleBody && slug === liveStore.articleSlug))
+                    return false
+                  return true
+                }
+                text: liveStore && liveStore.articleExpanded ? "▾ Show less" : "▸ Show more"
+                color: witnessMoreMa.containsMouse ? Qt.lighter(root.fwAccent, 1.15) : root.fwAccent
+                font.family: root.contentFontFamily
+                font.pixelSize: Style.font.bodySmall
+                font.bold: true
+
+                MouseArea {
+                  id: witnessMoreMa
+                  anchors.fill: parent
+                  anchors.margins: -Style.space(4)
+                  hoverEnabled: true
+                  preventStealing: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    if (!liveStore) return
+                    liveStore.articleExpanded = !liveStore.articleExpanded
+                    liveStore.heroExpanded = liveStore.articleExpanded
+                  }
+                }
               }
             }
           }
@@ -584,7 +654,7 @@ Panel {
           // Quiet footer
           Text {
             width: parent.width
-            text: "unofficial · not affiliated with xAI / Grokipedia · Encyclopedic is Heinlein"
+            text: "Unofficial · Grokipedia"
             color: root.contentForeground
             opacity: 0.22
             font.family: root.contentFontFamily
@@ -647,6 +717,7 @@ Panel {
       id: chipMa
       anchors.fill: parent
       hoverEnabled: true
+      preventStealing: true
       cursorShape: Qt.PointingHandCursor
       onClicked: chip.clicked()
     }
@@ -676,7 +747,6 @@ Panel {
     ActionChip {
       glyph: "\uf08e"
       label: "Open"
-      accent: true
       onClicked: {
         if (!root.liveStore) return
         if (actions.primary)

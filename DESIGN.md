@@ -1,6 +1,6 @@
 # Encyclopedic — design notes
 
-**Status:** 0.1.15  
+**Status:** 0.1.16  
 **Id:** `kenhara.encyclopedic`
 
 ## Why
@@ -33,21 +33,21 @@ search / cache.
 
 ## Panel
 
-1. Big **ENCYCLOPEDIC** + *look it up · report what it says* (+ looked-up age)
+1. Big **ENCYCLOPEDIC** + *look it up* (+ looked-up age)
 2. One search / paste field (focused on open)
 3. Huge ice **LOOK UP**
 4. **Direct match** (title/slug == query CI): expandable **MATCH** hero
-   (larger title; collapsed short snippet + Show more; always-visible
-   Preview / Open / Copy Link), then **RELATED** cards
+   (larger title; Preview fetches full article in-panel; Show more expands
+   the loaded body; Preview accent / Open + Copy Link secondary), then **RELATED** cards
 5. **No direct match:** flat result cards + optional **WITNESS** summary
    for selected / Previewed card — no fake hero
-6. Quiet footer: unofficial · not affiliated with xAI / Grokipedia · Encyclopedic is Heinlein
+6. Quiet footer: Unofficial · Grokipedia
 
 ## Data
 
 - Search: `GET https://grokipedia.com/api/full-text-search?query=…&limit=8`
 - Article URL: `https://grokipedia.com/page/{slug}` (Open allows `https:` only)
-- Page content API tried; not available publicly → search-only MVP
+- Preview: `GET https://grokipedia.com/api/page-preview?slug=…` (full body, in-panel)
 
 ## Non-goals
 

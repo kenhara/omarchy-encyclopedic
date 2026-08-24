@@ -11,7 +11,13 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.15
+**Version:** 0.1.16
+
+### 0.1.16
+- **Preview** fetches the full Grokipedia article (`/api/page-preview`) and shows it in the panel — not a no-op snippet line-count bump.
+- **Show more** expands/collapses the loaded in-panel body (fetches if needed).
+- One accent per card: Preview. Open and Copy Link are secondary.
+- Quiet copy: subheader *look it up*; footer *Unofficial · Grokipedia*.
 
 ### 0.1.15
 - Bar chip: tintable FA magnifying glass (`\uf002`, Nerd Font search) at `Style.font.caption` — no emoji.
@@ -158,9 +164,9 @@ python3 scripts/search.py --dry-run --query 'mars'
 | Search field | One paste/type; Enter triggers LOOK UP |
 | LOOK UP | `scripts/search.py` → result cards |
 | Open | Browser: `https:` URLs only (`Qt.openUrlExternally` / `xdg-open`) |
-| Preview | In-panel: select result + expand MATCH / WITNESS snippet (does not leave Omarchy) |
+| Preview | Fetch full article into the panel (does not leave Omarchy) |
 | Copy Link | Clipboard (URL only) |
-| MATCH hero | Expand/collapse snippet; Preview / Open / Copy Link always visible |
+| MATCH hero | Preview loads article; Show more expands/collapses body; Open / Copy Link secondary |
 | Select card (related / no match) | Updates WITNESS preview |
 
 ## Remove
@@ -179,10 +185,11 @@ rm -rf ~/.cache/encyclopedic
 
 - Search: `GET https://grokipedia.com/api/full-text-search?query=…&limit=…`
 - Article pages: `https://grokipedia.com/page/{slug}`
+- Preview: `GET https://grokipedia.com/api/page-preview?slug=…`
 
-Outbound HTTPS only when you click **LOOK UP** (or open a result). No auth.
+Outbound HTTPS only when you click **LOOK UP**, **Preview**, or **Open**. No auth.
 User-Agent: `Encyclopedic/<manifest version> (Omarchy unofficial; kenhara.encyclopedic)`
-(version read from `manifest.json`). One HTTPS GET per LOOK UP.
+(version read from `manifest.json`). One HTTPS GET per LOOK UP; one GET per Preview (cached in-session by slug).
 
 Cache (last **successful** search): `~/.cache/encyclopedic/last.json`.
 
@@ -194,6 +201,8 @@ Cache (last **successful** search): `~/.cache/encyclopedic/last.json`.
 python3 scripts/search.py --help
 python3 scripts/search.py --query 'mars' --limit 8
 # stdout JSON: {ok, results, primary, related, error}
+python3 scripts/search.py --page Mars
+# stdout JSON: {ok, found, slug, title, content, error}
 ```
 
 Empty query and `--dry-run` emit structured error JSON (non-zero exit).
@@ -221,7 +230,7 @@ README.md
 - **No API keys.** Public read search only.
 - Cache stores the last successful result list — no credentials.
 - Outbound HTTPS only on explicit LOOK UP / Open. No auto-fire on panel open
-  or middle-click.
+  or middle-click. Preview GETs page-preview on click.
 - MIT at repo root. Unofficial — not affiliated with xAI or Grokipedia.
   Encyclopedic is Heinlein.
 

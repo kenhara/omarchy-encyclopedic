@@ -3,7 +3,7 @@ import Quickshell
 import Quickshell.Io
 
 // Encyclopedic — runs scripts/search.py via Process; parses JSON stdout.
-// Public Grokipedia search only. No API keys.
+// Public Grokipedia search + page-preview. No API keys.
 // Caches last successful search to ~/.cache/encyclopedic/last.json
 Item {
   id: store
@@ -21,6 +21,15 @@ Item {
   property bool heroExpanded: false
   property int selectedIndex: -1
   property string searchBuf: ""
+  property string articleBuf: ""
+  property bool articleLoading: false
+  property bool articleExpanded: false
+  property string articleSlug: ""
+  property string articleTitle: ""
+  property string articleBody: ""
+  property string articleError: ""
+  property string articleRequestSlug: ""
+  property string articleFetchSlug: ""
   property string lookedUpAt: ""
   property string dataSource: "none"  // disk | search | none
   property string lastQuery: ""
@@ -48,6 +57,11 @@ Item {
 
   readonly property bool hasResults: store.results && store.results.length > 0
   readonly property bool hasPrimary: !!(store.primary && typeof store.primary === "object")
+  readonly property bool articleIsPrimary: {
+    if (!store.hasPrimary || !store.articleSlug)
+      return false
+    return String(store.primary.slug || "") === store.articleSlug
+  }
 
   readonly property var selectedResult: {
     if (store.selectedIndex < 0 || !store.results || store.selectedIndex >= store.results.length)
@@ -188,7 +202,125 @@ Item {
     }
   }
 
-  // In-panel preview — never xdg-open / Qt.openUrlExternally.
+  function clearArticle() {
+    store.articleLoading = false
+    store.articleExpanded = false
+    store.heroExpanded = false
+    store.articleSlug = ""
+    store.articleTitle = ""
+    store.articleBody = ""
+    store.articleError = ""
+    store.articleBuf = ""
+    store.articleRequestSlug = ""
+    store.articleFetchSlug = ""
+  }
+
+  function fetchArticle(slug, title) {
+    var s = String(slug || "").trim()
+    if (!s.length) {
+      store.showToast("No article")
+      return false
+    }
+    if (s === store.articleSlug && store.articleBody && store.articleBody.length) {
+      store.articleExpanded = true
+      store.heroExpanded = true
+      return true
+    }
+    store.articleRequestSlug = s
+    store.articleTitle = String(title || "")
+    store.articleError = ""
+    store.articleBody = ""
+    store.articleSlug = s
+    store.articleExpanded = true
+    store.heroExpanded = true
+    store.articleLoading = true
+    if (pageProc.running)
+      return true
+    store.articleFetchSlug = s
+    store.articleBuf = ""
+    pageProc.command = [
+      "python3",
+      "-B",
+      store.searchPath,
+      "--page",
+      s
+    ]
+    pageProc.environment = ({
+      "PYTHONDONTWRITEBYTECODE": "1"
+    })
+    pageProc.running = true
+    return true
+  }
+
+  function onPageFinished(exitCode) {
+    var fetchSlug = store.articleFetchSlug
+    var requested = store.articleRequestSlug
+    store.articleBuf = store.articleBuf || ""
+    if (!requested) {
+      store.articleBuf = ""
+      store.articleLoading = false
+      return
+    }
+    if (requested && requested !== fetchSlug) {
+      store.articleFetchSlug = requested
+      store.articleBuf = ""
+      store.articleLoading = true
+      pageProc.command = [
+        "python3",
+        "-B",
+        store.searchPath,
+        "--page",
+        requested
+      ]
+      pageProc.environment = ({
+        "PYTHONDONTWRITEBYTECODE": "1"
+      })
+      Qt.callLater(function() { pageProc.running = true })
+      return
+    }
+    store.articleLoading = false
+    var raw = store.articleBuf || ""
+    store.articleBuf = ""
+    if (!raw.length) {
+      store.articleError = "article produced no output (exit " + exitCode + ")"
+      store.showToast(store.articleError)
+      return
+    }
+    var lines = raw.split("\n")
+    var blob = ""
+    for (var i = lines.length - 1; i >= 0; i--) {
+      var line = String(lines[i] || "").trim()
+      if (line.charAt(0) === "{") {
+        blob = line
+        break
+      }
+    }
+    if (!blob.length)
+      blob = raw.trim()
+    try {
+      var obj = JSON.parse(blob)
+      if (obj.ok) {
+        store.articleSlug = String(obj.slug || fetchSlug || "")
+        store.articleTitle = String(obj.title || store.articleTitle || "")
+        store.articleBody = String(obj.content || "")
+        store.articleError = ""
+        store.articleExpanded = true
+        store.heroExpanded = true
+        if (!store.articleBody.length)
+          store.showToast("No article text")
+      } else {
+        store.articleError = String(obj.error || "Article failed")
+        store.articleBody = ""
+        store.showToast(store.articleError)
+      }
+    } catch (e) {
+      store.articleError = "article JSON parse failed"
+      store.articleBody = ""
+      store.showToast(store.articleError)
+    }
+  }
+
+  // In-panel preview — fetch full article body; never xdg-open / Qt.openUrlExternally.
   function previewResult(index) {
     var i = (index === undefined || index === null) ? store.selectedIndex : parseInt(index, 10)
     if (!isFinite(i) || i < 0 || !store.results || i >= store.results.length) {
@@ -196,9 +328,8 @@ Item {
       return false
     }
     store.selectedIndex = i
-    if (store.hasPrimary && store.sameResult(store.primary, store.results[i]))
-      store.heroExpanded = true
-    return true
+    var r = store.results[i]
+    return store.fetchArticle(r && r.slug ? r.slug : "", r && r.title ? r.title : "")
   }
 
   function previewPrimary() {
@@ -209,17 +340,18 @@ Item {
     var i = store.indexOfResult(store.primary)
     if (i >= 0)
       store.selectedIndex = i
-    store.heroExpanded = true
-    return true
+    return store.fetchArticle(store.primary.slug || "", store.primary.title || "")
   }
 
   function previewObject(obj) {
     var i = store.indexOfResult(obj)
-    if (i < 0) {
-      store.showToast("No result")
-      return false
+    if (i >= 0)
+      return store.previewResult(i)
+    if (obj && obj.slug) {
+      return store.fetchArticle(obj.slug || "", obj.title || "")
     }
-    return store.previewResult(i)
+    store.showToast("No result")
+    return false
   }
 
   function openResult(index) {
@@ -254,7 +386,7 @@ Item {
     store.lastError = ""
     store.lastRetryable = false
     store.searchBuf = ""
-    store.heroExpanded = false
+    store.clearArticle()
     var lim = store.clampLimit(store.resultLimit)
     searchProc.command = [
       "python3",
@@ -344,7 +476,7 @@ Item {
     store.primary = split.primary
     store.related = split.related
     if (!split.primary)
-      store.heroExpanded = false
+      store.articleExpanded = false
   }
 
   function openPrimary() {
@@ -363,7 +495,13 @@ Item {
 
   function toggleHero() {
     if (!store.primary) return
-    store.heroExpanded = !store.heroExpanded
+    var slug = String(store.primary.slug || "")
+    if (!store.articleBody || store.articleSlug !== slug) {
+      store.previewPrimary()
+      return
+    }
+    store.articleExpanded = !store.articleExpanded
+    store.heroExpanded = store.articleExpanded
   }
 
   function applyPayload(obj, source) {
@@ -416,8 +554,13 @@ Item {
     store.lastError = payload.error ? String(payload.error) : ""
     store.lastRetryable = false
     store.selectedIndex = list.length ? 0 : -1
+    store.articleBody = ""
+    store.articleSlug = ""
+    store.articleError = ""
+    store.articleExpanded = false
+    store.heroExpanded = false
     if (!store.primary)
-      store.heroExpanded = false
+      store.articleExpanded = false
     return true
   }
 
@@ -468,7 +611,7 @@ Item {
     store.results = []
     store.primary = null
     store.related = []
-    store.heroExpanded = false
+    store.clearArticle()
     store.lastPayload = null
     store.lastError = ""
     store.lastRetryable = false
@@ -540,6 +683,24 @@ Item {
         store.showToast("Opened")
       else
         store.showToast("Open failed")
+    }
+  }
+
+  Process {
+    id: pageProc
+    running: false
+    stdout: SplitParser {
+      onRead: function(line) { store.articleBuf += line + "\n" }
+    }
+    stderr: SplitParser {
+      onRead: function(line) {
+        var t = String(line || "")
+        if (t.length)
+          store.articleError = t
+      }
+    }
+    onExited: function(exitCode, exitStatus) {
+      store.onPageFinished(exitCode)
     }
   }
 
