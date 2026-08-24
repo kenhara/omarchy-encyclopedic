@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "kenhara.encyclopedic",
   "name": "Encyclopedic",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "author": "Harris Kenny",
   "license": "MIT",
-  "description": "Look it up. Report what it says. Unofficial Grokipedia / xAI encyclopedia client; not affiliated.",
+  "description": "Look it up. Unofficial Grokipedia / xAI encyclopedia client; not affiliated.",
   "kinds": [
     "bar-widget"
   ],
@@ -38,7 +38,7 @@
   ],
   "barWidget": {
     "displayName": "Encyclopedic",
-    "description": "Look it up. Report what it says. Public Grokipedia full-text search. Unofficial; not affiliated with xAI or Grokipedia.",
+    "description": "Look it up. Public Grokipedia full-text search. Unofficial; not affiliated with xAI or Grokipedia.",
     "category": "Productivity",
     "allowMultiple": false,
     "defaultSection": "right",

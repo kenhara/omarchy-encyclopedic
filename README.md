@@ -2,7 +2,7 @@
 
 ![Encyclopedic](preview.png)
 
-Look it up. Report what it says. Unofficial.
+Look it up. Unofficial.
 
 Public Grokipedia full-text search for Omarchy — one field, **LOOK UP**, result
 cards. Named for Heinlein’s Encyclopedic (*Stranger in a Strange Land*). No API
@@ -11,7 +11,10 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.17
+**Version:** 0.1.18
+
+### 0.1.18
+- Drop leftover Fair Witness "report what it says" from pitch.
 
 ### 0.1.17
 - Header: FA magnifying glass (`\uf002`) left of ENCYCLOPEDIC (same as bar chip).
