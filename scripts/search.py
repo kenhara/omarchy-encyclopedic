@@ -30,6 +30,12 @@ MAX_ARTICLE_CHARS = 60000
 MAX_REMOTE_BYTES = 5 * 1024 * 1024
 MAX_CACHE_BYTES = 2 * 1024 * 1024
 MAX_RESPONSE_BYTES = 1 * 1024 * 1024
+MAX_TITLE_CHARS = 300
+MAX_SNIPPET_CHARS = 4000
+MAX_SLUG_CHARS = 200
+MAX_URL_CHARS = 500
+MAX_ERROR_CHARS = 400
+ALLOWED_HOSTS = frozenset({"grokipedia.com", "www.grokipedia.com"})
 
 
 def read_manifest_version() -> str:
@@ -57,10 +63,18 @@ def emit(obj: dict[str, Any], exit_code: int = 0) -> None:
     raise SystemExit(exit_code)
 
 
-def strip_simple_html(text: str) -> str:
-    """Unescape first so encoded tags become strip-able, then strip, then
-    optional second unescape, then whitespace collapse.
+def cap_field(text: str, limit: int) -> str:
+    s = str(text or "")
+    if limit > 0 and len(s) > limit:
+        return s[:limit]
+    return s
 
+
+def strip_simple_html(text: str) -> str:
+    """Unescape once so encoded tags become strip-able, then strip tags.
+    No trailing unescape — a second pass reconstitutes double-encoded markup.
+
+    Drop leftover markdown images. Whitespace collapse.
     Repro: strip_simple_html('&lt;img src=x&gt;') must NOT contain live <img>.
     """
     if not text:
@@ -69,7 +83,7 @@ def strip_simple_html(text: str) -> str:
     # Drop simple highlight / markup tags; keep inner text.
     s = re.sub(r"</?(?:em|b|i|strong|mark|span|a|br|p)(?:\s[^>]*)?>", "", s, flags=re.I)
     s = re.sub(r"<[^>]+>", "", s)
-    s = html.unescape(s)
+    s = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", s)
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
@@ -92,7 +106,7 @@ def strip_article_markdown(text: str, max_chars: int = MAX_ARTICLE_CHARS) -> str
     s = re.sub(r"`([^`]+)`", r"\1", s)
     s = re.sub(r"</?(?:em|b|i|strong|mark|span|a|br|p|div|h[1-6])(?:\s[^>]*)?>", " ", s, flags=re.I)
     s = re.sub(r"<[^>]+>", "", s)
-    s = html.unescape(s)
+    # No trailing unescape — do not reconstitute markup.
     s = re.sub(r"[ \t]+\n", "\n", s)
     s = re.sub(r"\n{3,}", "\n\n", s)
     s = re.sub(r"[ \t]{2,}", " ", s)
@@ -107,13 +121,33 @@ def article_url(slug: str) -> str:
     return f"{PAGE_BASE}/{urllib.parse.quote(slug, safe='_-')}"
 
 
+def _is_allowed_https_host(url: str) -> bool:
+    """True only for https://grokipedia.com or https://www.grokipedia.com.
+
+    Rejects userinfo (no credentials to forward) and non-https schemes.
+    """
+    try:
+        parsed = urllib.parse.urlsplit(str(url or "").strip())
+    except Exception:
+        return False
+    if parsed.scheme.lower() != "https":
+        return False
+    if "@" in (parsed.netloc or ""):
+        return False
+    host = (parsed.hostname or "").lower().rstrip(".")
+    return host in ALLOWED_HOSTS
+
+
 def sanitize_https_url(url: str, slug: str = "") -> str:
-    """Only allow https:; prefer grokipedia article URLs; else construct."""
+    """Allowlisted grokipedia https URL, else construct from slug, else refuse."""
     u = str(url or "").strip()
-    if u.lower().startswith("https://"):
-        return u
+    if _is_allowed_https_host(u):
+        if len(u) <= MAX_URL_CHARS:
+            return u
     if slug:
-        return article_url(slug)
+        built = article_url(slug)
+        if _is_allowed_https_host(built) and len(built) <= MAX_URL_CHARS:
+            return built
     return ""
 
 
@@ -122,14 +156,41 @@ RETRY_BACKOFF_S = (0.5, 1.5)  # after attempt 1 and 2; 3 tries total
 USER_TRANSIENT = "Grokipedia is temporarily unavailable — try again"
 
 
+class _HttpsHostRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Follow redirects only to allowlisted grokipedia https hosts. No auth."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _is_allowed_https_host(newurl):
+            raise urllib.error.URLError("refused redirect host")
+        newreq = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if newreq is None:
+            return None
+        for hdr in ("Authorization", "Cookie", "Proxy-Authorization"):
+            try:
+                newreq.remove_header(hdr)
+            except Exception:
+                pass
+        return newreq
+
+
+def _http_opener() -> urllib.request.OpenerDirector:
+    return urllib.request.build_opener(_HttpsHostRedirectHandler())
+
+
 def http_get_json(url: str, timeout: float = 30.0) -> tuple[int, Any, str]:
+    if not _is_allowed_https_host(url):
+        return 0, {"error": "refused redirect host"}, "refused redirect host"
     headers = {
         "User-Agent": USER_AGENT,
         "Accept": "application/json",
     }
     req = urllib.request.Request(url, headers=headers, method="GET")
+    opener = _http_opener()
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with opener.open(req, timeout=timeout) as resp:
+            final = resp.geturl() if hasattr(resp, "geturl") else url
+            if not _is_allowed_https_host(final):
+                return 0, {"error": "refused redirect host"}, "refused redirect host"
             raw_bytes = resp.read(MAX_REMOTE_BYTES + 1)
             if len(raw_bytes) > MAX_REMOTE_BYTES:
                 return 0, {"error": "response too large"}, "response too large"
@@ -140,6 +201,16 @@ def http_get_json(url: str, timeout: float = 30.0) -> tuple[int, Any, str]:
             except json.JSONDecodeError:
                 return code, {"_raw": raw}, raw
     except urllib.error.HTTPError as e:
+        err_url = ""
+        if hasattr(e, "geturl"):
+            try:
+                err_url = e.geturl() or ""
+            except Exception:
+                err_url = ""
+        if not err_url:
+            err_url = str(getattr(e, "url", "") or "")
+        if err_url and not _is_allowed_https_host(err_url):
+            return 0, {"error": "refused redirect host"}, "refused redirect host"
         raw_bytes = e.read(MAX_REMOTE_BYTES + 1) if e.fp else b""
         if len(raw_bytes) > MAX_REMOTE_BYTES:
             return 0, {"error": "response too large"}, "response too large"
@@ -212,7 +283,8 @@ def fail_result(
         "limit": limit,
     }
     if error_detail:
-        out["errorDetail"] = error_detail
+        out["errorDetail"] = cap_field(strip_simple_html(str(error_detail)), MAX_ERROR_CHARS)
+    out["error"] = cap_field(strip_simple_html(str(error)), MAX_ERROR_CHARS)
     return out
 
 
@@ -224,11 +296,14 @@ def normalize_item(item: Any) -> dict[str, Any] | None:
     snippet = item.get("snippet") or item.get("scrollAnchorText") or ""
     if not slug and not title:
         return None
-    slug = str(slug).strip()
-    title = strip_simple_html(str(title))
-    snippet = strip_simple_html(str(snippet))
+    slug = cap_field(strip_simple_html(str(slug).strip()), MAX_SLUG_CHARS)
+    title = cap_field(strip_simple_html(str(title)), MAX_TITLE_CHARS)
+    snippet = cap_field(strip_simple_html(str(snippet)), MAX_SNIPPET_CHARS)
+    if not slug and not title:
+        return None
     raw_url = item.get("url") or ""
     url = sanitize_https_url(str(raw_url), slug)
+    url = cap_field(url, MAX_URL_CHARS)
     return {
         "title": title,
         "slug": slug,
@@ -390,7 +465,9 @@ def fail_page(
         "retryable": bool(retryable),
     }
     if error_detail:
-        out["errorDetail"] = error_detail
+        out["errorDetail"] = cap_field(strip_simple_html(str(error_detail)), MAX_ERROR_CHARS)
+    out["error"] = cap_field(strip_simple_html(str(error)), MAX_ERROR_CHARS)
+    out["slug"] = cap_field(strip_simple_html(str(slug)), MAX_SLUG_CHARS)
     return out
 
 
@@ -456,11 +533,11 @@ def fetch_page(slug: str) -> dict[str, Any]:
     if not isinstance(page, dict):
         return fail_page(slug=s, error="Page not found", retryable=False)
 
-    title = strip_simple_html(str(page.get("title") or s))
-    desc = strip_simple_html(str(page.get("description") or ""))
+    title = cap_field(strip_simple_html(str(page.get("title") or s)), MAX_TITLE_CHARS)
+    desc = cap_field(strip_simple_html(str(page.get("description") or "")), MAX_SNIPPET_CHARS)
     raw_content = page.get("content") or page.get("text") or page.get("body") or ""
     body = strip_article_markdown(str(raw_content or desc or ""))
-    out_slug = str(page.get("slug") or s).strip() or s
+    out_slug = cap_field(strip_simple_html(str(page.get("slug") or s).strip() or s), MAX_SLUG_CHARS)
     return {
         "ok": True,
         "found": True,
@@ -495,7 +572,145 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="",
         help="Load and emit a bounded cache JSON file",
     )
+    p.add_argument(
+        "--write-cache",
+        default="",
+        help="Atomically write cache JSON to this path",
+    )
+    p.add_argument(
+        "--cache-body",
+        default="",
+        help="JSON body for --write-cache (else stdin)",
+    )
     return p.parse_args(argv)
+
+
+def neutralize_payload(payload: Any) -> Any:
+    """Re-apply model-entry neutralization (search results / cache ingest)."""
+    if not isinstance(payload, dict):
+        return payload
+    if payload.get("cleared") is True:
+        return payload
+    if isinstance(payload.get("results"), list):
+        payload["results"] = [n for it in payload["results"] if (n := normalize_item(it))]
+    if "primary" in payload:
+        prim = normalize_item(payload.get("primary")) if isinstance(payload.get("primary"), dict) else None
+        payload["primary"] = prim
+    if isinstance(payload.get("related"), list):
+        payload["related"] = [n for it in payload["related"] if (n := normalize_item(it))]
+    if payload.get("error"):
+        payload["error"] = cap_field(strip_simple_html(str(payload["error"])), MAX_ERROR_CHARS)
+    if payload.get("errorDetail"):
+        payload["errorDetail"] = cap_field(
+            strip_simple_html(str(payload["errorDetail"])), MAX_ERROR_CHARS
+        )
+    if payload.get("query"):
+        payload["query"] = cap_field(strip_simple_html(str(payload["query"])), MAX_TITLE_CHARS)
+    return payload
+
+
+def neutralize_cache_obj(obj: Any) -> Any:
+    if not isinstance(obj, dict):
+        return obj
+    if obj.get("cleared") is True:
+        return {"version": 1, "cleared": True}
+    if isinstance(obj.get("payload"), dict):
+        obj["payload"] = neutralize_payload(obj["payload"])
+    else:
+        obj = neutralize_payload(obj)
+    if obj.get("query"):
+        obj["query"] = cap_field(strip_simple_html(str(obj["query"])), MAX_TITLE_CHARS)
+    return obj
+
+
+def _atomic_write_bytes(dest_path: str, data: bytes) -> None:
+    """O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW temp in dest dir, fsync, replace.
+
+    Fail closed if O_NOFOLLOW is missing. Mode 0600. Dest dir 0700.
+    Does not open the destination path for write (symlink/FIFO safe).
+    """
+    nofollow = getattr(os, "O_NOFOLLOW", 0)
+    if not nofollow:
+        raise OSError("O_NOFOLLOW required")
+    dest = os.path.abspath(str(dest_path))
+    dest_dir = os.path.dirname(dest)
+    os.makedirs(dest_dir, mode=0o700, exist_ok=True)
+    try:
+        os.chmod(dest_dir, 0o700)
+    except OSError:
+        pass
+    cloexec = getattr(os, "O_CLOEXEC", 0)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow | cloexec
+    tmp = os.path.join(
+        dest_dir, f".{os.path.basename(dest)}.{os.getpid()}.{time.time_ns()}.tmp"
+    )
+    fd = -1
+    try:
+        fd = os.open(tmp, flags, 0o600)
+        try:
+            os.fchmod(fd, 0o600)
+        except OSError:
+            pass
+        written = 0
+        while written < len(data):
+            n = os.write(fd, data[written:])
+            if n <= 0:
+                raise OSError("short write")
+            written += n
+        os.fsync(fd)
+    except Exception:
+        if fd >= 0:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+            fd = -1
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+    os.close(fd)
+    try:
+        os.replace(tmp, dest)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+    try:
+        dirfd = os.open(dest_dir, os.O_RDONLY | cloexec)
+        try:
+            os.fsync(dirfd)
+        finally:
+            os.close(dirfd)
+    except OSError:
+        pass
+
+
+def write_cache(path: str, body: bytes) -> None:
+    """Neutralize, then atomically write cache JSON. Fail closed."""
+    dest = str(path or "").strip()
+    if not dest:
+        emit({"ok": False, "error": "empty cache path"}, exit_code=1)
+    if len(body) > MAX_CACHE_BYTES:
+        emit({"ok": False, "error": "cache too large"}, exit_code=1)
+    try:
+        obj = json.loads(body.decode("utf-8"))
+    except Exception:
+        emit({"ok": False, "error": "invalid cache json"}, exit_code=1)
+    if not isinstance(obj, dict):
+        emit({"ok": False, "error": "invalid cache json"}, exit_code=1)
+    obj = neutralize_cache_obj(obj)
+    data = (json.dumps(obj, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    if len(data) > MAX_CACHE_BYTES:
+        emit({"ok": False, "error": "cache too large"}, exit_code=1)
+    try:
+        _atomic_write_bytes(dest, data)
+    except Exception as e:
+        emit({"ok": False, "error": cap_field(str(e), MAX_ERROR_CHARS)}, exit_code=1)
+    emit({"ok": True})
 
 
 def load_cache(path: str) -> None:
@@ -504,9 +719,14 @@ def load_cache(path: str) -> None:
     Opens O_NOFOLLOW | O_NONBLOCK and requires a regular file, so a symlink or
     FIFO planted at the predictable cache path can neither redirect the read nor
     block the helper before the 2 MiB cap applies. Oversize rejects;
-    decode/JSON errors clear.
+    decode/JSON errors clear. Re-applies neutralization on ingest.
     """
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    flags = (
+        os.O_RDONLY
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_NONBLOCK", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+    )
     data = b""
     fd = -1
     try:
@@ -537,11 +757,22 @@ def load_cache(path: str) -> None:
         emit({"cleared": True})
     if not isinstance(obj, dict):
         emit({"cleared": True})
-    emit(obj)
+    emit(neutralize_cache_obj(obj))
 
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    write_path = str(getattr(args, "write_cache", "") or "").strip()
+    if write_path:
+        raw = str(getattr(args, "cache_body", "") or "")
+        if raw:
+            body = raw.encode("utf-8")
+        elif sys.stdin.isatty():
+            emit({"ok": False, "error": "empty cache body"}, exit_code=1)
+        else:
+            body = sys.stdin.buffer.read(MAX_CACHE_BYTES + 1)
+        write_cache(write_path, body)
+
     cache_path = str(args.load_cache or "").strip()
     if cache_path:
         load_cache(cache_path)

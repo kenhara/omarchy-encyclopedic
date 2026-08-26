@@ -123,6 +123,7 @@ Panel {
             Text {
               visible: !!(liveStore && liveStore.lookedUpAt && String(liveStore.lookedUpAt).length)
               text: liveStore ? ("looked up " + liveStore.lastUpdatedText) : ""
+              textFormat: Text.PlainText
               color: root.contentForeground
               opacity: 0.35
               font.family: root.contentFontFamily
@@ -219,6 +220,7 @@ Panel {
             Text {
               width: parent.width
               text: liveStore ? liveStore.lastError : ""
+              textFormat: Text.PlainText
               color: Color.urgent
               font.family: root.contentFontFamily
               font.pixelSize: Style.font.bodySmall
@@ -249,6 +251,7 @@ Panel {
             width: parent.width
             visible: liveStore && liveStore.toastText && liveStore.toastText.length
             text: liveStore ? liveStore.toastText : ""
+            textFormat: Text.PlainText
             color: root.fwAccent
             font.family: root.contentFontFamily
             font.pixelSize: Style.font.bodySmall
@@ -778,7 +781,7 @@ Panel {
         else if (actions.resultIndex >= 0)
           root.liveStore.copyLink(actions.resultIndex)
         else if (actions.result)
-          root.liveStore.copyText(actions.result.url || "")
+          root.liveStore.copySanitizedLink(actions.result.url || "", actions.result.slug || "")
       }
     }
   }

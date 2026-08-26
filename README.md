@@ -11,7 +11,15 @@ keys. No vendor chrome.
 **ID:** `kenhara.encyclopedic`  
 **Author:** Harris Kenny  
 **License:** MIT  
-**Version:** 0.1.21
+**Version:** 0.1.22
+
+### 0.1.22: open-URL host allowlist, redirect refuse, atomic cache write
+- Open/Copy: parse `https://` URLs; allow only `grokipedia.com` / `www.grokipedia.com`; else build `/page/{slug}` or refuse. `copyLink` uses the sanitizer.
+- `http_get_json` refuses redirects whose final host is not grokipedia https (check before follow + `geturl()` before body). No auth forwarded.
+- `Text.PlainText` on lastError, toast, lastUpdated, and other remote-derived Text.
+- Neutralize at model entry (`normalize_item` + `applyPayload`): strip tags without a reconstituting trailing unescape; drop leftover markdown images; cap title/snippet/slug/url/error. Re-applied on disk cache ingest.
+- Cache write: helper `O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW` 0600 temp in dest dir, fsync, replace. Dir 0700. Fail closed if `O_NOFOLLOW` missing. `O_CLOEXEC`. HC-05 reads kept.
+- Pin `PATH=/usr/bin:/bin` on Processes; `python3 -B` stays.
 
 ### 0.1.21: reject symlink/FIFO on cache open (#2218)
 - Open cache with `O_NOFOLLOW | O_NONBLOCK` and require a regular file so a symlink or FIFO at the predictable path cannot redirect or hang the helper.
@@ -178,7 +186,7 @@ python3 scripts/search.py --dry-run --query 'mars'
 | Middle-click bar | Clear last search (+ cache); toast "Cleared" |
 | Search field | One paste/type; Enter triggers LOOK UP |
 | LOOK UP | `scripts/search.py` → result cards |
-| Open | Browser: `https:` URLs only (`Qt.openUrlExternally` / `xdg-open`) |
+| Open | Browser: allowlisted `https://grokipedia.com` (or `/page/{slug}`) |
 | Preview | Fetch full article into the panel (does not leave Omarchy) |
 | Copy Link | Clipboard (URL only) |
 | MATCH hero | Preview loads article; Show more expands/collapses body; Open / Copy Link secondary |
@@ -243,8 +251,10 @@ README.md
 ## Security baseline
 
 - **No API keys.** Public read search only.
-- Cache stores the last successful result list — no credentials.
-- Outbound HTTPS only on explicit LOOK UP / Open. No auto-fire on panel open
+- Cache stores the last successful result list — no credentials. Writes are
+  atomic (`O_NOFOLLOW` temp + replace); reads reject symlink/FIFO (HC-05).
+- Outbound HTTPS only on explicit LOOK UP / Open, and only to grokipedia.com.
+  Redirects to any other host are refused. No auto-fire on panel open
   or middle-click. Preview GETs page-preview on click.
 - MIT at repo root. Unofficial — not affiliated with xAI or Grokipedia.
   Encyclopedic is Heinlein.
