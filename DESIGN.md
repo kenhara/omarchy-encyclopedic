@@ -1,6 +1,6 @@
 # Encyclopedic — design notes
 
-**Status:** 0.1.16  
+**Status:** 0.1.22  
 **Id:** `kenhara.encyclopedic`
 
 ## Why
@@ -23,7 +23,7 @@ Grokipedia full-text search. No API keys. No vendor chrome.
 | MIT + manifest at root | Marketplace layout |
 | Unofficial disclaimer | Not affiliated with xAI / Grokipedia |
 | Primary UI simple | One field + big button + cards — no chips |
-| Remote text | `textFormat: Text.PlainText`; https-only Open |
+| Remote text | `textFormat: Text.PlainText`; grokipedia.com https Open |
 
 ## Bar
 
@@ -46,7 +46,7 @@ search / cache.
 ## Data
 
 - Search: `GET https://grokipedia.com/api/full-text-search?query=…&limit=8`
-- Article URL: `https://grokipedia.com/page/{slug}` (Open allows `https:` only)
+- Article URL: `https://grokipedia.com/page/{slug}` (Open allowlists grokipedia.com https)
 - Preview: `GET https://grokipedia.com/api/page-preview?slug=…` (full body, in-panel)
 
 ## Non-goals

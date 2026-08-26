@@ -54,6 +54,16 @@ Item {
     }
   }
   readonly property string searchPath: pluginDir + "/scripts/search.py"
+  readonly property var helperEnv: ({
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PATH": "/usr/bin:/bin"
+  })
+  readonly property int maxTitleChars: 300
+  readonly property int maxSnippetChars: 4000
+  readonly property int maxSlugChars: 200
+  readonly property int maxUrlChars: 500
+  readonly property int maxErrorChars: 400
+  property string pendingCacheBody: ""
 
   // FA search (\uf002) — tintable via Text.color; color emoji is not.
   readonly property string barGlyph: "\uf002"
@@ -110,7 +120,7 @@ Item {
   }
 
   function showToast(msg) {
-    store.toastText = String(msg || "")
+    store.toastText = store.neutralizeError(msg, "")
     toastClear.restart()
   }
 
@@ -138,20 +148,108 @@ Item {
     return true
   }
 
+  function capField(text, limit) {
+    var s = String(text || "")
+    var n = parseInt(limit, 10)
+    if (!isFinite(n) || n <= 0) return s
+    if (s.length > n) return s.substring(0, n)
+    return s
+  }
+
+  function unescapeHtmlOnce(text) {
+    var s = String(text || "")
+    return s.replace(/&(#x[0-9a-fA-F]+|#\d+|lt|gt|amp|quot|apos);/g, function(m, ent) {
+      if (ent === "lt") return "<"
+      if (ent === "gt") return ">"
+      if (ent === "amp") return "&"
+      if (ent === "quot") return "\""
+      if (ent === "apos") return "'"
+      if (ent.charAt(0) === "#") {
+        var code = ent.charAt(1).toLowerCase() === "x"
+          ? parseInt(ent.substring(2), 16)
+          : parseInt(ent.substring(1), 10)
+        if (isFinite(code) && code >= 0 && code <= 0x10ffff)
+          return String.fromCodePoint(code)
+      }
+      return m
+    })
+  }
+
+  function stripSimpleHtml(text) {
+    var s = store.unescapeHtmlOnce(String(text || ""))
+    s = s.replace(/<[^>]+>/g, "")
+    s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    s = s.replace(/\s+/g, " ").trim()
+    return s
+  }
+
   function articleUrlFromSlug(slug) {
     var s = String(slug || "").trim().replace(/^\//, "")
     if (!s.length) return ""
     return "https://grokipedia.com/page/" + encodeURIComponent(s).replace(/%2F/g, "/")
   }
 
+  function isAllowedGrokipediaHttps(url) {
+    var u = String(url || "").trim()
+    if (u.length < 8) return false
+    if (u.substring(0, 8).toLowerCase() !== "https://") return false
+    var rest = u.substring(8)
+    var cut = rest.length
+    var seps = ["/", "?", "#"]
+    var i
+    for (i = 0; i < seps.length; i++) {
+      var p = rest.indexOf(seps[i])
+      if (p >= 0 && p < cut) cut = p
+    }
+    var authority = rest.substring(0, cut)
+    if (authority.indexOf("@") >= 0)
+      return false
+    var host = authority
+    if (host.charAt(0) === "[")
+      return false
+    var colon = host.lastIndexOf(":")
+    if (colon >= 0) host = host.substring(0, colon)
+    host = host.toLowerCase()
+    if (host.length && host.charAt(host.length - 1) === ".")
+      host = host.substring(0, host.length - 1)
+    return host === "grokipedia.com" || host === "www.grokipedia.com"
+  }
+
   function sanitizeOpenUrl(url, slug) {
     var u = String(url || "").trim()
-    if (u.toLowerCase().indexOf("https:") === 0)
+    if (store.isAllowedGrokipediaHttps(u) && u.length <= store.maxUrlChars)
       return u
     var built = store.articleUrlFromSlug(slug)
-    if (built.length)
+    if (built.length && store.isAllowedGrokipediaHttps(built) && built.length <= store.maxUrlChars)
       return built
     return ""
+  }
+
+  function neutralizeItem(item) {
+    if (!item || typeof item !== "object") return null
+    var slug = store.capField(store.stripSimpleHtml(String(item.slug || item.id || "").trim()), store.maxSlugChars)
+    var title = store.capField(store.stripSimpleHtml(item.title || slug || ""), store.maxTitleChars)
+    var snippet = store.capField(store.stripSimpleHtml(item.snippet || item.scrollAnchorText || ""), store.maxSnippetChars)
+    if (!slug.length && !title.length) return null
+    var url = store.sanitizeOpenUrl(item.url || "", slug)
+    url = store.capField(url, store.maxUrlChars)
+    return { title: title, slug: slug, url: url, snippet: snippet }
+  }
+
+  function neutralizeList(list) {
+    var src = Array.isArray(list) ? list : []
+    var out = []
+    var i
+    for (i = 0; i < src.length; i++) {
+      var n = store.neutralizeItem(src[i])
+      if (n) out.push(n)
+    }
+    return out
+  }
+
+  function neutralizeError(msg, fallback) {
+    var s = store.stripSimpleHtml(String(msg || fallback || ""))
+    return store.capField(s, store.maxErrorChars)
   }
 
   function openUrlExternal(url, slug) {
@@ -232,7 +330,7 @@ Item {
       return true
     }
     store.articleRequestSlug = s
-    store.articleTitle = String(title || "")
+    store.articleTitle = store.capField(store.stripSimpleHtml(String(title || "")), store.maxTitleChars)
     store.articleError = ""
     store.articleBody = ""
     store.articleSlug = s
@@ -251,9 +349,7 @@ Item {
       "--page",
       s
     ]
-    pageProc.environment = ({
-      "PYTHONDONTWRITEBYTECODE": "1"
-    })
+    pageProc.environment = store.helperEnv
     pageProc.running = true
     return true
   }
@@ -280,9 +376,7 @@ Item {
         "--page",
         requested
       ]
-      pageProc.environment = ({
-        "PYTHONDONTWRITEBYTECODE": "1"
-      })
+      pageProc.environment = store.helperEnv
       Qt.callLater(function() { pageProc.running = true })
       return
     }
@@ -290,7 +384,7 @@ Item {
       store.articleBuf = ""
       store.articleOverflow = false
       store.articleLoading = false
-      store.articleError = "response too large"
+      store.articleError = store.neutralizeError("response too large")
       store.showToast(store.articleError)
       return
     }
@@ -298,7 +392,7 @@ Item {
     var raw = store.articleBuf || ""
     store.articleBuf = ""
     if (!raw.length) {
-      store.articleError = "article produced no output (exit " + exitCode + ")"
+      store.articleError = store.neutralizeError("article produced no output (exit " + exitCode + ")")
       store.showToast(store.articleError)
       return
     }
@@ -316,8 +410,8 @@ Item {
     try {
       var obj = JSON.parse(blob)
       if (obj.ok) {
-        store.articleSlug = String(obj.slug || fetchSlug || "")
-        store.articleTitle = String(obj.title || store.articleTitle || "")
+        store.articleSlug = store.capField(store.stripSimpleHtml(String(obj.slug || fetchSlug || "")), store.maxSlugChars)
+        store.articleTitle = store.capField(store.stripSimpleHtml(String(obj.title || store.articleTitle || "")), store.maxTitleChars)
         store.articleBody = String(obj.content || "")
         store.articleError = ""
         store.articleExpanded = true
@@ -325,12 +419,12 @@ Item {
         if (!store.articleBody.length)
           store.showToast("No article text")
       } else {
-        store.articleError = String(obj.error || "Article failed")
+        store.articleError = store.neutralizeError(obj.error, "Article failed")
         store.articleBody = ""
         store.showToast(store.articleError)
       }
     } catch (e) {
-      store.articleError = "article JSON parse failed"
+      store.articleError = store.neutralizeError("article JSON parse failed")
       store.articleBody = ""
       store.showToast(store.articleError)
     }
@@ -381,11 +475,21 @@ Item {
     return store.openUrlExternal(r && r.url ? r.url : "", r && r.slug ? r.slug : "")
   }
 
+  function copySanitizedLink(url, slug) {
+    var u = store.sanitizeOpenUrl(url, slug)
+    if (!u.length) {
+      store.showToast("Refused — https only")
+      return false
+    }
+    return store.copyText(u)
+  }
+
   function copyLink(index) {
     var i = (index === undefined || index === null) ? store.selectedIndex : parseInt(index, 10)
     if (!isFinite(i) || i < 0 || !store.results || i >= store.results.length)
       return store.copyText("")
-    return store.copyText(store.results[i].url || "")
+    var r = store.results[i]
+    return store.copySanitizedLink(r && r.url ? r.url : "", r && r.slug ? r.slug : "")
   }
 
   function lookUp() {
@@ -393,7 +497,7 @@ Item {
       return
     var q = String(store.queryInput || "").trim()
     if (!q.length) {
-      store.lastError = "Enter something to look up"
+      store.lastError = store.neutralizeError("Enter something to look up")
       store.lastRetryable = false
       store.showToast(store.lastError)
       return
@@ -412,9 +516,7 @@ Item {
       "--query", q,
       "--limit", String(lim)
     ]
-    searchProc.environment = ({
-      "PYTHONDONTWRITEBYTECODE": "1"
-    })
+    searchProc.environment = store.helperEnv
     searchProc.running = true
   }
 
@@ -429,17 +531,33 @@ Item {
   }
 
   function persistToDisk(obj) {
-    // FileView.setText mkpath — no mkdir Process + Qt.callLater race (FW-06).
-    var body = JSON.stringify(obj || store.buildCacheObject(), null, 2) + "\n"
-    try {
-      cacheFile.setText(body)
-    } catch (e) {}
+    store.pendingCacheBody = JSON.stringify(obj || store.buildCacheObject(), null, 2) + "\n"
+    store.flushCacheWrite()
   }
 
   function persistClear() {
-    try {
-      cacheFile.setText(JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n")
-    } catch (e) {}
+    store.pendingCacheBody = JSON.stringify({ version: 1, cleared: true }, null, 2) + "\n"
+    store.flushCacheWrite()
+  }
+
+  function flushCacheWrite() {
+    if (cacheWriteProc.running)
+      return
+    var body = store.pendingCacheBody
+    if (!body || !body.length)
+      return
+    store.pendingCacheBody = ""
+    cacheWriteProc.command = [
+      "python3",
+      "-B",
+      store.searchPath,
+      "--write-cache",
+      store.cachePath,
+      "--cache-body",
+      body
+    ]
+    cacheWriteProc.environment = store.helperEnv
+    cacheWriteProc.running = true
   }
 
   // Fallback split only when search.py omitted primary/related (FW-12).
@@ -507,7 +625,7 @@ Item {
   function copyPrimaryLink() {
     if (!store.primary)
       return store.copyText("")
-    return store.copyText(store.primary.url || "")
+    return store.copySanitizedLink(store.primary.url || "", store.primary.slug || "")
   }
 
   function toggleHero() {
@@ -529,16 +647,14 @@ Item {
 
     // FW-08: failed lookup must not wipe prior good results
     if (payload.ok === false) {
-      store.lastError = payload.error ? String(payload.error) : "Search failed"
+      store.lastError = store.neutralizeError(payload.error, "Search failed")
       store.lastRetryable = !!(payload.retryable || payload.transient)
       store.dataSource = source || store.dataSource
       return false
     }
 
-    var list = payload.results
-    if (!Array.isArray(list)) list = []
-    store.lastPayload = payload
-    store.results = list
+    var list = store.neutralizeList(Array.isArray(payload.results) ? payload.results : [])
+    payload.results = list
     store.lastQuery = obj.query || payload.query || store.lastQuery || ""
     if (store.lastQuery.length && !String(store.queryInput || "").trim().length)
       store.queryInput = store.lastQuery
@@ -546,10 +662,9 @@ Item {
     // FW-12: trust search.py primary/related when the key is present
     var q = store.lastQuery || payload.query || ""
     if (Object.prototype.hasOwnProperty.call(payload, "primary")) {
-      store.primary = (payload.primary && typeof payload.primary === "object")
-        ? payload.primary : null
+      store.primary = store.neutralizeItem(payload.primary)
       if (Array.isArray(payload.related)) {
-        store.related = payload.related
+        store.related = store.neutralizeList(payload.related)
       } else if (store.primary) {
         var pSlug = String(store.primary.slug || "")
         var pTitle = String(store.primary.title || "")
@@ -566,9 +681,15 @@ Item {
       store.applyPrimarySplit(list, q)
     }
 
+    payload.primary = store.primary
+    payload.related = store.related
+    if (payload.error)
+      payload.error = store.neutralizeError(payload.error, "")
+    store.lastPayload = payload
+    store.results = list
     store.lookedUpAt = obj.lookedUpAt || store.lookedUpAt || ""
     store.dataSource = source || "search"
-    store.lastError = payload.error ? String(payload.error) : ""
+    store.lastError = payload.error ? store.neutralizeError(payload.error, "") : ""
     store.lastRetryable = false
     store.selectedIndex = list.length ? 0 : -1
     store.articleBody = ""
@@ -586,7 +707,7 @@ Item {
     if (store.searchOverflow) {
       store.searchBuf = ""
       store.searchOverflow = false
-      store.lastError = "response too large"
+      store.lastError = store.neutralizeError("response too large")
       store.lastRetryable = false
       store.showToast(store.lastError)
       return
@@ -594,7 +715,7 @@ Item {
     var raw = store.searchBuf || ""
     store.searchBuf = ""
     if (!raw.length) {
-      store.lastError = "search produced no output (exit " + exitCode + ")"
+      store.lastError = store.neutralizeError("search produced no output (exit " + exitCode + ")")
       store.lastRetryable = false
       store.showToast(store.lastError)
       return
@@ -621,12 +742,12 @@ Item {
         store.persistToDisk(store.buildCacheObject(obj, store.lookedUpAt))
       } else {
         // FW-08: keep prior results/primary/related; error + toast only
-        store.lastError = String(obj.error || "Search failed")
+        store.lastError = store.neutralizeError(obj.error, "Search failed")
         store.lastRetryable = !!(obj.retryable || obj.transient)
         store.showToast(store.lastError)
       }
     } catch (e) {
-      store.lastError = "search JSON parse failed"
+      store.lastError = store.neutralizeError("search JSON parse failed")
       store.lastRetryable = false
       store.showToast(store.lastError)
     }
@@ -668,9 +789,7 @@ Item {
       "--load-cache",
       store.cachePath
     ]
-    cacheProc.environment = ({
-      "PYTHONDONTWRITEBYTECODE": "1"
-    })
+    cacheProc.environment = store.helperEnv
     cacheProc.running = true
   }
 
@@ -678,7 +797,7 @@ Item {
     if (store.cacheOverflow) {
       store.cacheBuf = ""
       store.cacheOverflow = false
-      store.lastError = "response too large"
+      store.lastError = store.neutralizeError("response too large")
       store.showToast(store.lastError)
       return
     }
@@ -712,18 +831,25 @@ Item {
     onTriggered: store.toastText = ""
   }
 
-  FileView {
-    id: cacheFile
-    path: store.cachePath
-    watchChanges: false
-    printErrors: false
-    preload: false
-    // Writes only (setText). Reads go through cacheProc --load-cache.
+  Process {
+    id: cacheWriteProc
+    running: false
+    environment: ({
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PATH": "/usr/bin:/bin"
+    })
+    onExited: function(exitCode, exitStatus) {
+      if (store.pendingCacheBody && store.pendingCacheBody.length)
+        store.flushCacheWrite()
+    }
   }
 
   Process {
     id: copyProc
     running: false
+    environment: ({
+      "PATH": "/usr/bin:/bin"
+    })
     onExited: function(exitCode, exitStatus) {
       if (exitCode === 0)
         store.showToast("Copied")
@@ -737,6 +863,9 @@ Item {
   Process {
     id: openUrlProc
     running: false
+    environment: ({
+      "PATH": "/usr/bin:/bin"
+    })
     onExited: function(exitCode, exitStatus) {
       if (exitCode === 0)
         store.showToast("Opened")
@@ -748,6 +877,10 @@ Item {
   Process {
     id: pageProc
     running: false
+    environment: ({
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PATH": "/usr/bin:/bin"
+    })
     stdout: SplitParser {
       splitMarker: ""
       onRead: function(line) {
@@ -764,7 +897,7 @@ Item {
       onRead: function(line) {
         var t = String(line || "")
         if (t.length)
-          store.articleError = t
+          store.articleError = store.neutralizeError(t)
       }
     }
     onExited: function(exitCode, exitStatus) {
@@ -775,6 +908,10 @@ Item {
   Process {
     id: searchProc
     running: false
+    environment: ({
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PATH": "/usr/bin:/bin"
+    })
     stdout: SplitParser {
       splitMarker: ""
       onRead: function(line) {
@@ -791,7 +928,7 @@ Item {
       onRead: function(line) {
         var s = String(line || "")
         if (s.length)
-          store.lastError = s
+          store.lastError = store.neutralizeError(s)
       }
     }
     onExited: function(exitCode, exitStatus) {
@@ -802,6 +939,10 @@ Item {
   Process {
     id: cacheProc
     running: false
+    environment: ({
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PATH": "/usr/bin:/bin"
+    })
     stdout: SplitParser {
       splitMarker: ""
       onRead: function(line) {

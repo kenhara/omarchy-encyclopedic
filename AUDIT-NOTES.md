@@ -60,3 +60,24 @@ rg -n 'Style\.font\.size\(|Quickshell\.clipboard[^T]|bash -lc' .
 | ID | Finding | Fix |
 |----|---------|-----|
 | **HC-05** | `load_cache()` still opened the replaceable cache with blocking `open(path, "rb")` — follows a symlink and can hang on a FIFO before the 2 MiB cap | Open `O_NOFOLLOW | O_NONBLOCK`; require `S_ISREG`; symlink/FIFO/non-regular emit `{cleared: true}` so the helper neither redirects nor blocks. Oversize still rejects. |
+
+
+## 0.1.22 (security)
+
+| ID | Finding | Fix |
+|----|---------|-----|
+| **HC-06** | Open/Copy accepted any `https:` URL | Parse `https://`; allowlist `grokipedia.com` / `www`; else build `/page/{slug}` or refuse. `copyLink` uses sanitizer. |
+| **HC-07** | `http_get_json` followed redirects to any host | Custom redirect handler + `geturl()` check before body. No auth forwarded. |
+| **HC-08** | lastError / toast / lastUpdated used default AutoText | `textFormat: Text.PlainText`. |
+| **HC-09** | Trailing unescape reconstituted markup; uncapped fields | Strip without trailing unescape; drop leftover markdown images; cap title/snippet/slug/url/error. Re-apply on cache ingest. |
+| **HC-10** | Cache write via FileView (follows dest) | Helper `O_EXCL|O_NOFOLLOW` temp 0600, fsync, replace. Dir 0700. Fail closed without `O_NOFOLLOW`. `O_CLOEXEC`. |
+| **HC-11** | Process PATH inherited | Pin `PATH=/usr/bin:/bin`. `python3 -B` stays. |
+
+Verify (isolated `/tmp` only — never write `~/.cache/encyclopedic`):
+
+```sh
+python3 -m py_compile scripts/search.py
+python3 scripts/search.py --dry-run --query mars
+# helper: symlink write must not follow; FIFO-no-writer must not hang;
+# sanitize_https_url rejects non-grokipedia https (rebuilds from slug or refuses)
+```
